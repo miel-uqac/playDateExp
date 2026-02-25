@@ -3,12 +3,18 @@ import "CoreLibs/crank"
 
 local gfx = playdate.graphics
 
+-- =========================
 -- ETATS DU JEU
+-- =========================
 local STATE_MENU = 0
 local STATE_PLAYING = 1
-local gameState = STATE_MENU -- On commence par le menu
+local gameState = STATE_MENU
 
--- Paramètres de l'image
+local W, H = 400, 240
+
+-- =========================
+-- Paramètres visuels (fleur)
+-- =========================
 local scale = 0.08
 local playerImage = nil
 
@@ -17,95 +23,170 @@ if loadedImage then
     playerImage = loadedImage:scaledImage(scale)
 end
 
-local W, H = 400, 240
-
--- Gameplay (Code de ton collègue)
-local speed = 60            -- px/s
-local turnRate = 0.02       
-local smoothDir = 0.18      
+-- =========================
+-- Gameplay
+-- =========================
+local speed = 60          -- px/s
+local turnRate = 0.02     -- sensibilité manivelle
+local smoothDir = 0.18    -- lissage direction
 
 -- Courbe
 local minStepDist = 3
 local maxPoints = 260
+local pathSmooth = 0.25   -- lissage du tracé
 
--- Etat
+-- =========================
+-- Etat plante
+-- =========================
 local points = {}
 local headX, headY = 200, 200
-local dir = -math.pi / 2    
+local smoothHeadX, smoothHeadY = 200, 200
+local dir = -math.pi / 2 -- vers le haut
 
-local function lerp(a, b, t) return a + (b - a) * t end
+-- =========================
+-- Utils
+-- =========================
+local function lerp(a, b, t)
+    return a + (b - a) * t
+end
+
 local function clamp(x, a, b)
     if x < a then return a end
     if x > b then return b end
     return x
 end
 
--- Initialisation de la base
-points[1] = { x = headX, y = H }    
-points[2] = { x = headX, y = headY }
+-- =========================
+-- Reset plante
+-- =========================
+local function resetPlant()
+    points = {}
 
+    headX, headY = 200, 200
+    smoothHeadX, smoothHeadY = headX, headY
+    dir = -math.pi / 2
 
+    -- Base + premier segment
+    points[1] = { x = headX, y = H }
+    points[2] = { x = headX, y = headY }
+end
+
+-- IMPORTANT : on reset APRÈS la définition
+resetPlant()
+
+local function drawStemSegment(x1, y1, x2, y2, radius)
+    -- Dessine une "capsule" simple : plein de petits cercles entre 2 points
+    local dx = x2 - x1
+    local dy = y2 - y1
+    local dist = math.sqrt(dx * dx + dy * dy)
+
+    if dist < 0.001 then
+        gfx.fillCircleAtPoint(math.floor(x1 + 0.5), math.floor(y1 + 0.5), radius)
+        return
+    end
+
+    -- Pas entre les cercles (plus petit = plus lisse mais plus coûteux)
+    local step = math.max(1, radius * 0.8)
+    local steps = math.max(1, math.floor(dist / step))
+
+    for s = 0, steps do
+        local t = s / steps
+        local x = x1 + dx * t
+        local y = y1 + dy * t
+        gfx.fillCircleAtPoint(math.floor(x + 0.5), math.floor(y + 0.5), radius)
+    end
+end
+
+local function drawPlant(points)
+    -- Tige organique (plus joli qu'une simple ligne sur écran 1-bit)
+    local stemRadius = 2   -- essaie 2 ou 3 selon le rendu voulu
+
+    for i = 1, #points - 1 do
+        local p1 = points[i]
+        local p2 = points[i + 1]
+        drawStemSegment(p1.x, p1.y, p2.x, p2.y, stemRadius)
+    end
+end
+
+-- =========================
+-- Update principal
+-- =========================
 function playdate.update()
     gfx.clear()
 
-    -- --- LOGIQUE DU MENU ---
+    -- -------- MENU --------
     if gameState == STATE_MENU then
-        
-        -- Affichage simple du menu
-        gfx.drawTextAligned("Appuie sur *A* pour commencer", 200, 100, kTextAlignment.center)
-        
-        -- Si on appuie sur A, on lance le jeu
-        if playdate.buttonJustPressed(playdate.kButtonA) then
-            gameState = STATE_PLAYING
-            playdate.resetElapsedTime() -- Très important pour que la plante ne fasse pas un bond géant
-        end
+        gfx.drawTextAligned("Appuie sur A pour commencer", W / 2, 100, kTextAlignment.center)
 
-    -- --- LOGIQUE DU JEU (Code de ton collègue conservé) ---
-    elseif gameState == STATE_PLAYING then
+        if playdate.buttonJustPressed(playdate.kButtonA) then
+            resetPlant()
+            gameState = STATE_PLAYING
+            playdate.resetElapsedTime() -- évite le gros saut de dt
+        end
+        return
+    end
+
+    -- -------- JEU --------
+    if gameState == STATE_PLAYING then
+        -- Retour menu 
+        if playdate.buttonJustPressed(playdate.kButtonB) then
+            gameState = STATE_MENU
+            return
+        end
 
         local dt = playdate.getElapsedTime()
         playdate.resetElapsedTime()
 
-        -- 1) Manivelle
-        local dDeg = playdate.getCrankChange() 
+        -- 1) Manivelle (rotation relative)
+        local dDeg = playdate.getCrankChange()
         local targetDir = dir + dDeg * turnRate
         dir = lerp(dir, targetDir, smoothDir)
 
-        -- 2) Mouvement
+        -- 2) Mouvement de la tête
         local vx = math.cos(dir) * speed
         local vy = math.sin(dir) * speed
+
         headX = headX + vx * dt
         headY = headY + vy * dt
 
-        -- 3) Clamp
+        -- Clamp de la vraie tête (important)
         headX = clamp(headX, 5, W - 5)
         headY = clamp(headY, 5, H - 5)
 
-        -- 4) Logique des points
+        -- Lissage visuel
+        smoothHeadX = smoothHeadX + (headX - smoothHeadX) * pathSmooth
+        smoothHeadY = smoothHeadY + (headY - smoothHeadY) * pathSmooth
+
+        -- Clamp visuel aussi
+        smoothHeadX = clamp(smoothHeadX, 5, W - 5)
+        smoothHeadY = clamp(smoothHeadY, 5, H - 5)
+
+        -- 3) Ajouter des points si distance suffisante
         local last = points[#points]
-        local dx, dy = headX - last.x, headY - last.y
-        if (dx*dx + dy*dy) >= (minStepDist * minStepDist) then
-            points[#points + 1] = { x = headX, y = headY }
-            if #points > maxPoints then
-                table.remove(points, 1)
+        if last then
+            local dx = smoothHeadX - last.x
+            local dy = smoothHeadY - last.y
+            if (dx * dx + dy * dy) >= (minStepDist * minStepDist) then
+                points[#points + 1] = { x = smoothHeadX, y = smoothHeadY }
+
+                if #points > maxPoints then
+                    table.remove(points, 1)
+                end
             end
         end
 
-        -- 5) DESSIN
-        -- Dessin de la ligne
-        gfx.setLineWidth(3)
-        for i = 1, #points - 1 do
-            gfx.drawLine(points[i].x, points[i].y, points[i+1].x, points[i+1].y)
-        end
+        -- 4) Dessin de la plante
+        drawPlant(points)
 
-        -- DESSIN DE L'IMAGE AU BOUT
+        -- 5) Fleur / tête
         if playerImage then
-            playerImage:drawCentered(headX, headY)
+            playerImage:drawCentered(smoothHeadX, smoothHeadY)
         else
-            gfx.fillCircleAtPoint(headX, headY, 6)
+            gfx.fillCircleAtPoint(math.floor(smoothHeadX + 0.5), math.floor(smoothHeadY + 0.5), 6)
         end
 
-        -- Debug (optionnel, tu peux l'enlever pour que ce soit plus joli)
+        -- Debug
         gfx.drawText(string.format("dDeg: %.2f", dDeg), 10, 10)
+        gfx.drawText("B: menu", 10, 24)
     end
 end
