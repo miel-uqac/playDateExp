@@ -29,6 +29,9 @@ end
 local speed = 60          -- px/s
 local turnRate = 0.02     -- sensibilité manivelle
 local smoothDir = 0.18    -- lissage direction
+local scrollSpeed = 28    -- vitesse de scrolling
+local waterY = H + 50
+local waterSpeed = 40     -- Vitesse de l'eau
 
 -- Courbe
 local minStepDist = 3
@@ -137,6 +140,16 @@ function playdate.update()
         local dt = playdate.getElapsedTime()
         playdate.resetElapsedTime()
 
+        -- 0) SCROLLING (Appliqué avant le mouvement)
+        local scrollOffset = scrollSpeed * dt
+        for i = 1, #points do
+            points[i].y = points[i].y + scrollOffset
+        end
+        
+        -- On fait descendre la tête pour suivre le scroll
+        headY = headY + scrollOffset
+        smoothHeadY = smoothHeadY + scrollOffset
+
         -- 1) Manivelle (rotation relative)
         local dDeg = playdate.getCrankChange()
         local targetDir = dir + dDeg * turnRate
@@ -149,17 +162,22 @@ function playdate.update()
         headX = headX + vx * dt
         headY = headY + vy * dt
 
-        -- Clamp de la vraie tête (important)
+        -- Clamp de la vraie tête (Modifié pour le scrolling)
         headX = clamp(headX, 5, W - 5)
-        headY = clamp(headY, 5, H - 5)
+        -- On ne clamp plus le bas (H-5) pour permettre de perdre si l'eau nous rattrape
+        headY = clamp(headY, 10, H + 100)
+
+        -- Condition de défaite si la plante sort par le bas
+        if headY > H then
+            gameState = STATE_MENU
+        end
 
         -- Lissage visuel
         smoothHeadX = smoothHeadX + (headX - smoothHeadX) * pathSmooth
         smoothHeadY = smoothHeadY + (headY - smoothHeadY) * pathSmooth
 
-        -- Clamp visuel aussi
+        -- Clamp visuel
         smoothHeadX = clamp(smoothHeadX, 5, W - 5)
-        smoothHeadY = clamp(smoothHeadY, 5, H - 5)
 
         -- 3) Ajouter des points si distance suffisante
         local last = points[#points]
@@ -169,7 +187,8 @@ function playdate.update()
             if (dx * dx + dy * dy) >= (minStepDist * minStepDist) then
                 points[#points + 1] = { x = smoothHeadX, y = smoothHeadY }
 
-                if #points > maxPoints then
+                -- Nettoyage des points (maxPoints ou sortie d'écran)
+                if #points > maxPoints or (points[1] and points[1].y > H + 50) then
                     table.remove(points, 1)
                 end
             end
@@ -183,6 +202,18 @@ function playdate.update()
             playerImage:drawCentered(smoothHeadX, smoothHeadY)
         else
             gfx.fillCircleAtPoint(math.floor(smoothHeadX + 0.5), math.floor(smoothHeadY + 0.5), 6)
+        end
+
+        -- 6) L'EAU (Rectangle fixe de 20px en bas)
+        local waterHeight = 20
+        local waterTop = H - waterHeight
+        
+        gfx.fillRect(0, waterTop, W, waterHeight)
+
+        -- 7) DETECTION DE COLLISION AVEC L'EAU
+        -- Si le bas de la fleur (y + environ 5px de rayon) touche le haut de l'eau
+        if smoothHeadY + 5 > waterTop then
+            gameState = STATE_MENU
         end
 
         -- Debug
