@@ -1,5 +1,6 @@
 import "CoreLibs/graphics"
 import "CoreLibs/crank"
+import "obstacles"
 
 local gfx = playdate.graphics
 
@@ -145,6 +146,8 @@ function playdate.update()
         for i = 1, #points do
             points[i].y = points[i].y + scrollOffset
         end
+
+        updateObstacles(dt, scrollOffset)
         
         -- On fait descendre la tête pour suivre le scroll
         headY = headY + scrollOffset
@@ -196,12 +199,22 @@ function playdate.update()
 
         -- 4) Dessin de la plante
         drawPlant(points)
-
+        drawObstacles()
+        
         -- 5) Fleur / tête
         if playerImage then
             playerImage:drawCentered(smoothHeadX, smoothHeadY)
         else
             gfx.fillCircleAtPoint(math.floor(smoothHeadX + 0.5), math.floor(smoothHeadY + 0.5), 6)
+        end
+
+        -- DETECTION DE COLLISION OBSTACLES
+        for _, o in ipairs(obstacles) do
+            -- Vérifie si le point (smoothHeadX, smoothHeadY) est à l'intérieur du rectangle de l'obstacle
+            if smoothHeadX > o.x and smoothHeadX < o.x + o.w and
+                smoothHeadY > o.y and smoothHeadY < o.y + o.h then
+                gameState = STATE_MENU -- GAME OVER
+            end
         end
 
         -- 6) L'EAU (Rectangle fixe de 20px en bas)
