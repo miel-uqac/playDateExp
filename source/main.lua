@@ -4,52 +4,37 @@ import "obstacles"
 
 local gfx = playdate.graphics
 
--- =========================
 -- ETATS DU JEU
--- =========================
 local STATE_MENU = 0
 local STATE_PLAYING = 1
 local gameState = STATE_MENU
-
 local W, H = 400, 240
 
--- =========================
 -- Paramètres visuels (fleur)
--- =========================
-local scale = 0.08
+local scale = 0.05
 local playerImage = nil
+local hitboxRadius = 10
 
-local loadedImage = gfx.image.new("assets/Fleur")
+local loadedImage = gfx.image.new("assets/Fleur3")
 if loadedImage then
     playerImage = loadedImage:scaledImage(scale)
 end
 
--- =========================
--- Gameplay
--- =========================
 local speed = 60          -- px/s
 local turnRate = 0.02     -- sensibilité manivelle
 local smoothDir = 0.18    -- lissage direction
 local scrollSpeed = 28    -- vitesse de scrolling
-local waterY = H + 50
-local waterSpeed = 40     -- Vitesse de l'eau
-
--- Courbe
 local minStepDist = 3
-local maxPoints = 260
+local maxPoints = 260     -- Nb de point max pour la tige
 local pathSmooth = 0.25   -- lissage du tracé
 
--- =========================
 -- Etat plante
--- =========================
 local points = {}
 local headX, headY = 200, 200
 local smoothHeadX, smoothHeadY = 200, 200
 local dir = -math.pi / 2 -- vers le haut
 
--- =========================
 -- Utils
--- =========================
 local function lerp(a, b, t)
     return a + (b - a) * t
 end
@@ -60,39 +45,31 @@ local function clamp(x, a, b)
     return x
 end
 
--- =========================
 -- Reset plante
--- =========================
 local function resetPlant()
     points = {}
-
     headX, headY = 200, 200
     smoothHeadX, smoothHeadY = headX, headY
     dir = -math.pi / 2
+    
+    clearObstacles() -- Indispensable pour vider la table des obstacles !
 
-    -- Base + premier segment
     points[1] = { x = headX, y = H }
     points[2] = { x = headX, y = headY }
 end
 
--- IMPORTANT : on reset APRÈS la définition
 resetPlant()
 
 local function drawStemSegment(x1, y1, x2, y2, radius)
-    -- Dessine une "capsule" simple : plein de petits cercles entre 2 points
     local dx = x2 - x1
     local dy = y2 - y1
     local dist = math.sqrt(dx * dx + dy * dy)
-
     if dist < 0.001 then
         gfx.fillCircleAtPoint(math.floor(x1 + 0.5), math.floor(y1 + 0.5), radius)
         return
     end
-
-    -- Pas entre les cercles (plus petit = plus lisse mais plus coûteux)
     local step = math.max(1, radius * 0.8)
     local steps = math.max(1, math.floor(dist / step))
-
     for s = 0, steps do
         local t = s / steps
         local x = x1 + dx * t
@@ -102,9 +79,7 @@ local function drawStemSegment(x1, y1, x2, y2, radius)
 end
 
 local function drawPlant(points)
-    -- Tige organique (plus joli qu'une simple ligne sur écran 1-bit)
-    local stemRadius = 2   -- essaie 2 ou 3 selon le rendu voulu
-
+    local stemRadius = 2
     for i = 1, #points - 1 do
         local p1 = points[i]
         local p2 = points[i + 1]
@@ -112,27 +87,20 @@ local function drawPlant(points)
     end
 end
 
--- =========================
--- Update principal
--- =========================
 function playdate.update()
     gfx.clear()
 
-    -- -------- MENU --------
     if gameState == STATE_MENU then
         gfx.drawTextAligned("Appuie sur A pour commencer", W / 2, 100, kTextAlignment.center)
-
         if playdate.buttonJustPressed(playdate.kButtonA) then
             resetPlant()
             gameState = STATE_PLAYING
-            playdate.resetElapsedTime() -- évite le gros saut de dt
+            playdate.resetElapsedTime()
         end
         return
     end
 
-    -- -------- JEU --------
     if gameState == STATE_PLAYING then
-        -- Retour menu 
         if playdate.buttonJustPressed(playdate.kButtonB) then
             gameState = STATE_MENU
             return
@@ -141,96 +109,81 @@ function playdate.update()
         local dt = playdate.getElapsedTime()
         playdate.resetElapsedTime()
 
-        -- 0) SCROLLING (Appliqué avant le mouvement)
         local scrollOffset = scrollSpeed * dt
         for i = 1, #points do
             points[i].y = points[i].y + scrollOffset
         end
-
         updateObstacles(dt, scrollOffset)
         
-        -- On fait descendre la tête pour suivre le scroll
         headY = headY + scrollOffset
         smoothHeadY = smoothHeadY + scrollOffset
 
-        -- 1) Manivelle (rotation relative)
         local dDeg = playdate.getCrankChange()
         local targetDir = dir + dDeg * turnRate
         dir = lerp(dir, targetDir, smoothDir)
 
-        -- 2) Mouvement de la tête
         local vx = math.cos(dir) * speed
         local vy = math.sin(dir) * speed
 
         headX = headX + vx * dt
         headY = headY + vy * dt
 
-        -- Clamp de la vraie tête (Modifié pour le scrolling)
         headX = clamp(headX, 5, W - 5)
-        -- On ne clamp plus le bas (H-5) pour permettre de perdre si l'eau nous rattrape
         headY = clamp(headY, 10, H + 100)
 
-        -- Condition de défaite si la plante sort par le bas
         if headY > H then
             gameState = STATE_MENU
         end
 
-        -- Lissage visuel
         smoothHeadX = smoothHeadX + (headX - smoothHeadX) * pathSmooth
         smoothHeadY = smoothHeadY + (headY - smoothHeadY) * pathSmooth
-
-        -- Clamp visuel
         smoothHeadX = clamp(smoothHeadX, 5, W - 5)
 
-        -- 3) Ajouter des points si distance suffisante
         local last = points[#points]
         if last then
             local dx = smoothHeadX - last.x
             local dy = smoothHeadY - last.y
             if (dx * dx + dy * dy) >= (minStepDist * minStepDist) then
                 points[#points + 1] = { x = smoothHeadX, y = smoothHeadY }
-
-                -- Nettoyage des points (maxPoints ou sortie d'écran)
                 if #points > maxPoints or (points[1] and points[1].y > H + 50) then
                     table.remove(points, 1)
                 end
             end
         end
 
-        -- 4) Dessin de la plante
         drawPlant(points)
         drawObstacles()
         
-        -- 5) Fleur / tête
         if playerImage then
             playerImage:drawCentered(smoothHeadX, smoothHeadY)
         else
             gfx.fillCircleAtPoint(math.floor(smoothHeadX + 0.5), math.floor(smoothHeadY + 0.5), 6)
         end
 
-        -- DETECTION DE COLLISION OBSTACLES
+        -- DETECTION DE COLLISION AMÉLIORÉE (Hitbox Cercle vs Rectangle)
         for _, o in ipairs(obstacles) do
-            -- Vérifie si le point (smoothHeadX, smoothHeadY) est à l'intérieur du rectangle de l'obstacle
-            if smoothHeadX > o.x and smoothHeadX < o.x + o.w and
-                smoothHeadY > o.y and smoothHeadY < o.y + o.h then
-                gameState = STATE_MENU -- GAME OVER
+            -- On cherche le point du rectangle le plus proche du centre de la fleur
+            local closestX = clamp(smoothHeadX, o.x, o.x + o.w)
+            local closestY = clamp(smoothHeadY, o.y, o.y + o.h)
+            
+            -- On calcule la distance entre le centre de la fleur et ce point proche
+            local dx = smoothHeadX - closestX
+            local dy = smoothHeadY - closestY
+            local distanceSquared = (dx * dx) + (dy * dy)
+            
+            -- Si la distance est plus petite que le rayon de la fleur, on touche !
+            if distanceSquared < (hitboxRadius * hitboxRadius) then
+                gameState = STATE_MENU
             end
         end
 
-        -- 6) L'EAU (Rectangle fixe de 20px en bas)
         local waterHeight = 20
         local waterTop = H - waterHeight
-        
         gfx.fillRect(0, waterTop, W, waterHeight)
 
-        -- 7) DETECTION DE COLLISION AVEC L'EAU
-        -- Si le bas de la fleur (y + environ 5px de rayon) touche le haut de l'eau
-        if smoothHeadY + 5 > waterTop then
+        -- Collision Eau (incluant le rayon de la fleur)
+        if smoothHeadY + hitboxRadius > waterTop then
             gameState = STATE_MENU
         end
-
-        -- Debug
-        gfx.drawText(string.format("dDeg: %.2f", dDeg), 10, 10)
-        gfx.drawText("B: menu", 10, 24)
     end
 end
