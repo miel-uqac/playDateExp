@@ -29,7 +29,7 @@ function spawnFallingPot()
 end
 
 function updateObstacles(dt, scrollOffset)
-    spawnTimer += dt * 1000
+    spawnTimer = spawnTimer + dt * 1000
     if spawnTimer >= spawnInterval then
         spawnTimer = 0
         if math.random() > 0.3 then
