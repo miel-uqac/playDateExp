@@ -4,9 +4,24 @@ UI = {}
 
 local C = GameConstants
 
-function UI.drawHUD(gfx, score)
+function UI.drawHUD(gfx, score, bonusEffect)
+    local padding = 4
+    local boxWidth = 90
+    local boxHeight = 20
+
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(4, 2, boxWidth, boxHeight)
     gfx.setColor(gfx.kColorBlack)
-    gfx.drawText("Score: " .. tostring(math.floor(score)), 6, 4)
+    gfx.drawRect(4, 2, boxWidth, boxHeight)
+    gfx.drawText("Score: " .. tostring(math.floor(score)), 6 + padding, 4)
+
+    if bonusEffect then
+        gfx.setColor(gfx.kColorWhite)
+        gfx.fillRect(4, 26, boxWidth, boxHeight)
+        gfx.setColor(gfx.kColorBlack)
+        gfx.drawRect(4, 26, boxWidth, boxHeight)
+        gfx.drawText("x2 " .. tostring(math.ceil(bonusEffect.timer)) .. "s", 6 + padding, 28)
+    end
 end
 
 function UI.drawStartMenu(gfx, bestScore)

@@ -7,8 +7,17 @@ GameConstants = {
     SCREEN_HEIGHT = 240,
 
     PLAYER_SCALE = 0.05,
-    PLAYER_IMAGE_PATH = "assets/Fleur3",
+    PLAYER_IMAGE_PATH = "assets/Fleur",
     PLAYER_HITBOX_RADIUS = 10,
+
+    POT_IMAGE_PATH = "assets/PotDeFleur",
+    
+    BACKGROUND_IMAGE_PATH = "assets/BG3",
+    BG_PARALLAX_SPEED = 0.2,
+    BG_IMAGE_HEIGHT = 240,
+
+    BONUS_SIZE = 30,
+    BONUS_SPAWN_INTERVAL = 1000,
 
     SPEED = 60,
     TURN_RATE = 0.02,

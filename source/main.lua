@@ -1,9 +1,11 @@
 import "CoreLibs/graphics"
+import "CoreLibs/sprites"
 import "CoreLibs/crank"
 import "obstacles"
 import "game_constants"
 import "ui"
 import "plant"
+import "bonus"
 
 local gfx = playdate.graphics
 local C = GameConstants
@@ -23,7 +25,18 @@ if loadedImage then
     playerImage = loadedImage:scaledImage(C.PLAYER_SCALE)
 end
 
--- Forward declarations for functions called in playdate.update()
+local backgroundImage = gfx.image.new(C.BACKGROUND_IMAGE_PATH)
+
+-- Pour le background
+local bgScrollY = 0
+
+-- Pour les bonus
+local activeBonuses = {}
+local bonusEffect = nil
+local nextBonusScore = 800
+local scoreMultiplier = 1
+
+
 local resetGame
 local startGame
 local gameOver
@@ -53,6 +66,47 @@ local function hasObstacleCollision()
     return false
 end
 
+local function updateBonuses(dt, scrollOffset)
+    local px, py = Plant.getSmoothHeadPosition()
+    for i = #activeBonuses, 1, -1 do
+        local b = activeBonuses[i]
+        b:update(dt, scrollOffset)
+        if not b.collected and b:checkCollision(px, py, hitboxRadius) then
+            b.collected = true
+            local effect = b:onCollect()
+            if effect then
+                bonusEffect = { type = effect.type, multiplier = effect.multiplier, timer = effect.duration }
+                scoreMultiplier = effect.multiplier
+            end
+        end
+
+        if b.collected or b:isOffscreen() then
+            table.remove(activeBonuses, i)
+        end
+    end
+    if bonusEffect then
+        bonusEffect.timer = bonusEffect.timer - dt
+        if bonusEffect.timer <= 0 then
+            bonusEffect = nil
+            scoreMultiplier = 1
+        end
+    end
+end
+
+local function drawBonuses(gfx)
+    for _, b in ipairs(activeBonuses) do
+        b:draw(gfx)
+    end
+end
+
+local function trySpawnBonus()
+    if score >= nextBonusScore then
+        nextBonusScore = nextBonusScore + C.BONUS_SPAWN_INTERVAL
+        local x = math.random(20, C.SCREEN_WIDTH - 20)
+        table.insert(activeBonuses, ScoreBonus.new(x, -20))
+    end
+end
+
 function playdate.update()
     gfx.clear()
 
@@ -66,7 +120,6 @@ function playdate.update()
 
     if gameState == C.STATE_GAMEOVER then
         UI.drawGameOver(gfx, score, bestScore)
-
         if playdate.buttonJustPressed(playdate.kButtonA) then
             startGame()
         elseif playdate.buttonJustPressed(playdate.kButtonB) then
@@ -90,8 +143,14 @@ function playdate.update()
     local crankDelta = playdate.getCrankChange()
     local scrollOffset, climbDelta, offscreenLoss = Plant.update(dt, crankDelta)
 
+    if backgroundImage then
+        bgScrollY = (bgScrollY + scrollOffset * C.BG_PARALLAX_SPEED) % C.BG_IMAGE_HEIGHT
+        backgroundImage:draw(0, bgScrollY - C.BG_IMAGE_HEIGHT)
+        backgroundImage:draw(0, bgScrollY)
+    end
+
     updateObstacles(dt, scrollOffset)
-    score = score + climbDelta
+    score = score + (climbDelta * scoreMultiplier)
 
     if offscreenLoss then
         gameOver()
@@ -99,9 +158,13 @@ function playdate.update()
     end
 
     Plant.drawStem(gfx)
-    UI.drawHUD(gfx, score)
+    UI.drawHUD(gfx, score, bonusEffect)
     drawObstacles()
     Plant.drawHead(gfx, playerImage)
+
+    trySpawnBonus()
+    updateBonuses(dt, scrollOffset)
+    drawBonuses(gfx)
 
     if hasObstacleCollision() then
         gameOver()
@@ -123,6 +186,10 @@ resetGame = function()
     score = 0
     clearObstacles()
     Plant.reset()
+    activeBonuses = {}
+    bonusEffect = nil
+    scoreMultiplier = 1
+    nextBonusScore = C.BONUS_SPAWN_INTERVAL
 end
 
 startGame = function()
