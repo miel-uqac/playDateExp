@@ -9,15 +9,24 @@ GameConstants = {
     PLAYER_SCALE = 0.05,
     PLAYER_IMAGE_PATH = "assets/Fleur",
     PLAYER_HITBOX_RADIUS = 10,
+    --LEAF_IMAGE_PATH = "assets/Feuille",
+    --LEAF_SPAWN_CHANCE = 10,
+    --LEAF_OSCILLATION_SPEED = 2.5,
+    --LEAF_OSCILLATION_AMOUNT = 0.3,
 
     POT_IMAGE_PATH = "assets/PotDeFleur",
-    
-    BACKGROUND_IMAGE_PATH = "assets/BG3",
+
+    BACKGROUND_IMAGE_PATH = "assets/BG",
     BG_PARALLAX_SPEED = 0.2,
     BG_IMAGE_HEIGHT = 240,
 
     BONUS_SIZE = 30,
     BONUS_SPAWN_INTERVAL = 1000,
+
+    -- Musiques
+    MUSIC_MENU_PATH = "assets/audio/music_menu",
+    MUSIC_GAME_PATH = "assets/audio/music_game",
+    SOUND_GAMEOVER_PATH = "assets/audio/gameover",
 
     SPEED = 60,
     TURN_RATE = 0.02,

@@ -6,6 +6,7 @@ import "game_constants"
 import "ui"
 import "plant"
 import "bonus"
+import "audio"
 
 local gfx = playdate.graphics
 local C = GameConstants
@@ -29,6 +30,9 @@ local backgroundImage = gfx.image.new(C.BACKGROUND_IMAGE_PATH)
 
 -- Pour le background
 local bgScrollY = 0
+
+--Pour l'audio
+Audio.load()
 
 -- Pour les bonus
 local activeBonuses = {}
@@ -111,6 +115,7 @@ function playdate.update()
     gfx.clear()
 
     if gameState == C.STATE_MENU then
+        Audio.playMenuMusic()
         UI.drawStartMenu(gfx, bestScore)
         if playdate.buttonJustPressed(playdate.kButtonA) then
             startGame()
@@ -156,8 +161,9 @@ function playdate.update()
         gameOver()
         return
     end
-
+    
     Plant.drawStem(gfx)
+    --Plant.drawLeaves(gfx)
     UI.drawHUD(gfx, score, bonusEffect)
     drawObstacles()
     Plant.drawHead(gfx, playerImage)
@@ -196,6 +202,7 @@ startGame = function()
     resetGame()
     gameState = C.STATE_PLAYING
     playdate.resetElapsedTime()
+    Audio.playGameMusic()
 end
 
 gameOver = function()
@@ -203,4 +210,5 @@ gameOver = function()
     if score > bestScore then
         bestScore = score
     end
+    Audio.playGameOver()
 end
