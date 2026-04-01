@@ -13,9 +13,23 @@ local C = GameConstants
 
 local gameState = C.STATE_MENU
 
+-- Section sur l'enregistrement des scores sur la console
+local function saveBestScore(newBest)
+    local data = { highscore = newBest }
+    playdate.datastore.write(data, "saveData")
+end
+
+local function loadBestScore()
+    local data = playdate.datastore.read("saveData")
+    if data and data.highscore then
+        return data.highscore
+    end
+    return 0
+end
+
 -- Score variables
 local score = 0
-local bestScore = 0
+local bestScore = loadBestScore()
 
 -- Player visuals and collision
 local playerImage = nil
@@ -209,6 +223,17 @@ gameOver = function()
     gameState = C.STATE_GAMEOVER
     if score > bestScore then
         bestScore = score
+        saveBestScore(bestScore)
     end
     Audio.playGameOver()
+end
+
+
+-- Pour enregistrer quand on quitte le jeu
+function playdate.gameWillTerminate()
+    saveBestScore(bestScore)
+end
+
+function playdate.deviceWillSleep()
+    saveBestScore(bestScore)
 end

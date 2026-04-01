@@ -20,7 +20,7 @@ GameConstants = {
     BG_PARALLAX_SPEED = 0.2,
     BG_IMAGE_HEIGHT = 240,
 
-    BONUS_SIZE = 30,
+    BONUS_SIZE = 35,
     BONUS_SPAWN_INTERVAL = 1000,
 
     -- Musiques
