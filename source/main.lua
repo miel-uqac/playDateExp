@@ -69,15 +69,22 @@ local function hasObstacleCollision()
     local smoothHeadX, smoothHeadY = Plant.getSmoothHeadPosition()
 
     for _, o in ipairs(obstacles) do
-        local closestX = clamp(smoothHeadX, o.x, o.x + o.w)
-        local closestY = clamp(smoothHeadY, o.y, o.y + o.h)
+        local collisionActive = true
+        if o.canCollide and not o:canCollide() then
+            collisionActive = false
+        end
 
-        local dx = smoothHeadX - closestX
-        local dy = smoothHeadY - closestY
-        local distanceSquared = (dx * dx) + (dy * dy)
+        if collisionActive then
+            local closestX = clamp(smoothHeadX, o.x, o.x + o.w)
+            local closestY = clamp(smoothHeadY, o.y, o.y + o.h)
 
-        if distanceSquared < (hitboxRadius * hitboxRadius) then
-            return true
+            local dx = smoothHeadX - closestX
+            local dy = smoothHeadY - closestY
+            local distanceSquared = (dx * dx) + (dy * dy)
+
+            if distanceSquared < (hitboxRadius * hitboxRadius) then
+                return true
+            end
         end
     end
 
@@ -227,7 +234,6 @@ gameOver = function()
     end
     Audio.playGameOver()
 end
-
 
 -- Pour enregistrer quand on quitte le jeu
 function playdate.gameWillTerminate()

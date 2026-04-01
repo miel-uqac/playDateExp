@@ -6,21 +6,28 @@ local C = GameConstants
 
 function UI.drawHUD(gfx, score, bonusEffect)
     local padding = 4
-    local boxWidth = 90
     local boxHeight = 20
+    local scoreFloor = math.floor(score)
+    local scoreText = "Score: " .. tostring(scoreFloor)
+    local numberOfDigits = string.len(tostring(scoreFloor))
+    local boxWidth = 65 + (numberOfDigits * 12)
 
     gfx.setColor(gfx.kColorWhite)
     gfx.fillRect(4, 2, boxWidth, boxHeight)
     gfx.setColor(gfx.kColorBlack)
     gfx.drawRect(4, 2, boxWidth, boxHeight)
-    gfx.drawText("Score: " .. tostring(math.floor(score)), 6 + padding, 4)
+    gfx.drawText(scoreText, 6 + padding, 4)
 
+    -- Gestion de la boite de bonus
     if bonusEffect then
+        local bonusText = "x2 " .. tostring(math.ceil(bonusEffect.timer)) .. "s"
+        local bonusBoxWidth = boxWidth
+
         gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(4, 26, boxWidth, boxHeight)
+        gfx.fillRect(4, 26, bonusBoxWidth, boxHeight)
         gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(4, 26, boxWidth, boxHeight)
-        gfx.drawText("x2 " .. tostring(math.ceil(bonusEffect.timer)) .. "s", 6 + padding, 28)
+        gfx.drawRect(4, 26, bonusBoxWidth, boxHeight)
+        gfx.drawText(bonusText, 6 + padding, 28)
     end
 end
 

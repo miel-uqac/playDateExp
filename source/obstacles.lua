@@ -75,12 +75,16 @@ function FallingPot.new(x)
     return setmetatable(self, FallingPot)
 end
 
+function FallingPot:canCollide()
+    return self.state == "falling"
+end
+
 function FallingPot:update(dt, scrollOffset)
     if self.state == "warning" then
         self.timer = self.timer - (dt * 1000)
         if self.timer <= 0 then
             self.state = "falling"
-            self.y = -30
+            self.y = -self.h 
         end
     elseif self.state == "falling" then
         self.y = self.y + (self.speed * dt) + scrollOffset
@@ -91,8 +95,14 @@ function FallingPot:draw()
     if self.state == "warning" then
         if math.floor(self.timer / 100) % 2 == 0 then
             gfx.setColor(gfx.kColorBlack)
-            gfx.drawRect(self.x, self.y, self.w, self.h)
-            gfx.drawTextAligned("*!*", self.x + self.w / 2, self.y + 2, kTextAlignment.center)
+            
+            local warningSize = 25
+            local centerX = self.x + self.w / 2
+            local warningX = centerX - (warningSize / 2)
+            local warningY = 10 
+            
+            gfx.drawRect(warningX, warningY, warningSize, warningSize)
+            gfx.drawTextAligned("!", centerX, warningY + 1, kTextAlignment.center)
         end
     elseif self.state == "falling" then
         gfx.setColor(gfx.kColorBlack)
