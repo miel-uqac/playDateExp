@@ -183,15 +183,23 @@ local function hasObstacleCollision()
         end
 
         if collisionActive then
-            local closestX = clamp(smoothHeadX, o.x, o.x + o.w)
-            local closestY = clamp(smoothHeadY, o.y, o.y + o.h)
-
-            local dx = smoothHeadX - closestX
-            local dy = smoothHeadY - closestY
-            local distanceSquared = (dx * dx) + (dy * dy)
-
-            if distanceSquared < (hitboxRadius * hitboxRadius) then
-                return true
+            if o.radius then
+                local dx = smoothHeadX - o.centerX
+                local dy = smoothHeadY - o.centerY
+                local distanceSquared = dx * dx + dy * dy
+                local combinedRadius = hitboxRadius + o.radius
+                if distanceSquared < combinedRadius * combinedRadius then
+                    return true
+                end
+            else
+                local closestX = clamp(smoothHeadX, o.x, o.x + o.w)
+                local closestY = clamp(smoothHeadY, o.y, o.y + o.h)
+                local dx = smoothHeadX - closestX
+                local dy = smoothHeadY - closestY
+                local distanceSquared = dx * dx + dy * dy
+                if distanceSquared < hitboxRadius * hitboxRadius then
+                    return true
+                end
             end
         end
     end

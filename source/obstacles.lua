@@ -27,25 +27,6 @@ function Obstacle:isOffscreen()
 end
 
 
--- Classe fille : FixedObstacle
-FixedObstacle = setmetatable({}, {__index = Obstacle})
-FixedObstacle.__index = FixedObstacle
-
-function FixedObstacle.new(x, y, w, h)
-    local self = Obstacle.new(x, y, w, h)
-    return setmetatable(self, FixedObstacle)
-end
-
-function FixedObstacle:update(dt, scrollOffset)
-    self.y = self.y + scrollOffset
-end
-
-function FixedObstacle:draw()
-    gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(self.x, self.y, self.w, self.h)
-end
-
-
 -- Classe fille : FallingPot
 FallingPot = setmetatable({}, {__index = Obstacle})
 FallingPot.__index = FallingPot
@@ -116,6 +97,55 @@ function FallingPot:draw()
 end
 
 
+-- Classe fille : Saw (scie circulaire)
+Saw = setmetatable({}, {__index = Obstacle})
+Saw.__index = Saw
+
+local sawImage = nil
+local loadedSaw = gfx.image.new(C.SAW_IMAGE_PATH)
+if loadedSaw then
+    sawImage = loadedSaw
+    print("Image scie chargee !")
+else
+    print("Erreur : Impossible de charger la scie a : " .. C.SAW_IMAGE_PATH)
+end
+
+function Saw.new(x, y, scale)
+    local baseW, baseH = 32, 32
+    local scaledSaw = nil
+
+    if sawImage then
+        scaledSaw = sawImage:scaledImage(scale)
+        baseW, baseH = scaledSaw:getSize()
+    end
+
+    local self = Obstacle.new(x - baseW / 2, y, baseW, baseH)
+    self.scale = scale
+    self.angle = 0
+    self.centerX = x
+    self.centerY = y + baseH / 2
+    self.radius = baseW / 2
+    self.scaledImage = scaledSaw
+    return setmetatable(self, Saw)
+end
+
+function Saw:update(dt, scrollOffset)
+    self.y = self.y + scrollOffset
+    self.centerY = self.centerY + scrollOffset
+    self.angle = (self.angle + C.SAW_ROTATION_SPEED * dt) % 360
+end
+
+function Saw:draw()
+    if self.scaledImage then
+        self.scaledImage:drawRotated(self.centerX, self.centerY, self.angle)
+    else
+        gfx.setColor(gfx.kColorBlack)
+        gfx.drawCircleAtPoint(self.centerX, self.centerY, self.w / 2)
+        gfx.drawLine(self.centerX - self.w / 2, self.centerY, self.centerX + self.w / 2, self.centerY)
+        gfx.drawLine(self.centerX, self.centerY - self.h / 2, self.centerX, self.centerY + self.h / 2)
+    end
+end
+
 -- Gestion globale des obstacles
 obstacles = {}
 local spawnTimer = 0
@@ -125,11 +155,13 @@ function updateObstacles(dt, scrollOffset)
     spawnTimer = spawnTimer + dt * 1000
     if spawnTimer >= spawnInterval then
         spawnTimer = 0
-        if math.random() > 0.3 then
-            local w = math.random(50, 120)
-            local x = math.random(0, C.SCREEN_WIDTH - w)
-            table.insert(obstacles, FixedObstacle.new(x, -50, w, 25))
-        else
+
+        local roll = math.random()
+        if roll > 0.75 then
+            local scale = C.SAW_SIZE_MIN + math.random() * (C.SAW_SIZE_MAX - C.SAW_SIZE_MIN)
+            local x = math.random(30, C.SCREEN_WIDTH - 30)
+            table.insert(obstacles, Saw.new(x, -80, scale))
+        elseif roll > 0.25 then
             local x = math.random(10, C.SCREEN_WIDTH - 34)
             table.insert(obstacles, FallingPot.new(x))
         end

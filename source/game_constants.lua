@@ -14,6 +14,11 @@ GameConstants = {
     --LEAF_OSCILLATION_SPEED = 2.5,
     --LEAF_OSCILLATION_AMOUNT = 0.3,
 
+    SAW_IMAGE_PATH = "assets/Scie",
+    SAW_ROTATION_SPEED = 180,
+    SAW_SIZE_MIN = 0.5,
+    SAW_SIZE_MAX = 1,
+
     POT_IMAGE_PATH = "assets/PotDeFleur",
 
     BACKGROUND_IMAGE_PATH = "assets/Clouds/cloud_1",
