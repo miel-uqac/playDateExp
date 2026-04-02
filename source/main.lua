@@ -40,10 +40,118 @@ if loadedImage then
     playerImage = loadedImage:scaledImage(C.PLAYER_SCALE)
 end
 
-local backgroundImage = gfx.image.new(C.BACKGROUND_IMAGE_PATH)
+local backgroundImage = nil
+local backgroundImageWidth = 0
+local backgroundImageHeight = 0
+local backgroundClouds = {}
+local cloudSpawnAccumulator = 0
+
+local loadedBackgroundImage = gfx.image.new(C.BACKGROUND_IMAGE_PATH)
+if loadedBackgroundImage then
+    backgroundImage = loadedBackgroundImage:scaledImage(C.BACKGROUND_IMAGE_SCALE)
+    backgroundImageWidth, backgroundImageHeight = backgroundImage:getSize()
+end
 
 -- Pour le background
 local bgScrollY = 0
+
+local function randomBackgroundCloudY()
+    return math.random(-backgroundImageHeight, C.SCREEN_HEIGHT - backgroundImageHeight)
+end
+
+local function randomBackgroundCloudX()
+    return math.random(-backgroundImageWidth, C.SCREEN_WIDTH - backgroundImageWidth)
+end
+
+local function cloudsOverlap(x1, y1, x2, y2)
+    local margin = C.BG_CLOUD_MARGIN
+    return not (
+        x1 + backgroundImageWidth + margin < x2 or
+        x2 + backgroundImageWidth + margin < x1 or
+        y1 + backgroundImageHeight + margin < y2 or
+        y2 + backgroundImageHeight + margin < y1
+    )
+end
+
+local function buildBackgroundCloudSlots(minY, maxY)
+    local slots = {}
+    local stepX = backgroundImageWidth + (C.BG_CLOUD_MARGIN * 2)
+    local stepY = backgroundImageHeight + (C.BG_CLOUD_MARGIN * 2)
+    local yMin = minY or (-backgroundImageHeight)
+    local yMax = maxY or (C.SCREEN_HEIGHT - backgroundImageHeight)
+
+    for y = yMin, yMax, stepY do
+        for x = -backgroundImageWidth, C.SCREEN_WIDTH, stepX do
+            slots[#slots + 1] = { x = x, y = y }
+        end
+    end
+
+    for i = #slots, 2, -1 do
+        local j = math.random(i)
+        slots[i], slots[j] = slots[j], slots[i]
+    end
+
+    return slots
+end
+
+local function placeBackgroundCloud(cloud, minY, maxY)
+    local slots = buildBackgroundCloudSlots(minY, maxY)
+
+    for _, slot in ipairs(slots) do
+        local overlaps = false
+
+        for _, otherCloud in ipairs(backgroundClouds) do
+            if otherCloud ~= cloud and cloudsOverlap(slot.x, slot.y, otherCloud.x, otherCloud.y) then
+                overlaps = true
+                break
+            end
+        end
+
+        if not overlaps then
+            cloud.x = slot.x
+            cloud.y = slot.y
+            return true
+        end
+    end
+
+    return false
+end
+
+local function resetBackgroundClouds()
+    backgroundClouds = {}
+
+    if not backgroundImage then
+        return
+    end
+
+    local cloudCount = math.random(C.BG_CLOUD_COUNT_MIN, C.BG_CLOUD_COUNT_MAX)
+    for i = 1, cloudCount do
+        local cloud = {}
+        backgroundClouds[i] = cloud
+        placeBackgroundCloud(cloud)
+        cloud.speed = 0.7 + (math.random() * 0.6)
+    end
+end
+
+local function respawnBackgroundCloud(cloud)
+    local placed = placeBackgroundCloud(cloud, -backgroundImageHeight * 4, -backgroundImageHeight)
+    if not placed then
+        cloud.x = randomBackgroundCloudX()
+        cloud.y = math.random(-backgroundImageHeight * 4, -backgroundImageHeight)
+    end
+    cloud.speed = 0.7 + (math.random() * 0.6)
+end
+
+local function spawnCloudFromTop()
+    if #backgroundClouds >= C.BG_CLOUD_HARD_CAP then
+        return
+    end
+
+    local cloud = {}
+    backgroundClouds[#backgroundClouds + 1] = cloud
+
+    respawnBackgroundCloud(cloud)
+end
 
 --Pour l'audio
 Audio.load()
@@ -170,9 +278,26 @@ function playdate.update()
     local scrollOffset, climbDelta, offscreenLoss = Plant.update(dt, crankDelta)
 
     if backgroundImage then
-        bgScrollY = (bgScrollY + scrollOffset * C.BG_PARALLAX_SPEED) % C.BG_IMAGE_HEIGHT
-        backgroundImage:draw(0, bgScrollY - C.BG_IMAGE_HEIGHT)
-        backgroundImage:draw(0, bgScrollY)
+        if climbDelta > 0 then
+            cloudSpawnAccumulator = cloudSpawnAccumulator + climbDelta
+            while cloudSpawnAccumulator >= C.BG_CLOUD_SPAWN_CLIMB do
+                cloudSpawnAccumulator = cloudSpawnAccumulator - C.BG_CLOUD_SPAWN_CLIMB
+                spawnCloudFromTop()
+            end
+        end
+
+        bgScrollY = bgScrollY + (scrollOffset * C.BG_PARALLAX_SPEED)
+
+        for i = 1, #backgroundClouds do
+            local cloud = backgroundClouds[i]
+            cloud.y = cloud.y + (scrollOffset * C.BG_PARALLAX_SPEED * cloud.speed)
+
+            if cloud.y < -backgroundImageHeight - 20 or cloud.y > C.SCREEN_HEIGHT + 20 then
+                respawnBackgroundCloud(cloud)
+            end
+
+            backgroundImage:draw(cloud.x, cloud.y + C.BG_VERTICAL_OFFSET)
+        end
     end
 
     updateObstacles(dt, scrollOffset)
@@ -213,6 +338,8 @@ resetGame = function()
     score = 0
     clearObstacles()
     Plant.reset()
+    cloudSpawnAccumulator = 0
+    resetBackgroundClouds()
     activeBonuses = {}
     bonusEffect = nil
     scoreMultiplier = 1
