@@ -21,8 +21,8 @@ GameConstants = {
 
     POT_IMAGE_PATH = "assets/PotDeFleur",
 
-    BACKGROUND_IMAGE_PATH = "assets/Clouds/cloud_1",
-    BACKGROUND_IMAGE_SCALE = 0.12,
+    BACKGROUND_IMAGE_PATH = "assets/Clouds/BigCloud2",
+    BACKGROUND_IMAGE_SCALE = 1,
     BG_PARALLAX_SPEED = 0.12,
     BG_VERTICAL_OFFSET = 0,
     BG_CLOUD_MARGIN = 10,

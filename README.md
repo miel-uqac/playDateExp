@@ -19,7 +19,7 @@ Les objectifs du projet sont les suivants :
 - Découvrir le développement de jeu sur Playdate
 - Apprendre à structurer un projet de jeu complet
 - Travailler en équipe sur un projet technique
-- Mettre en pratique la gestion de projet et le développement itératif
+- Créer une documentation sur la création du jeu dans le Wiki du dépot GitHub
 
 
 ## Contexte académique
