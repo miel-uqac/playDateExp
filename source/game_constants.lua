@@ -9,10 +9,6 @@ GameConstants = {
     PLAYER_SCALE = 0.05,
     PLAYER_IMAGE_PATH = "assets/Fleur",
     PLAYER_HITBOX_RADIUS = 10,
-    --LEAF_IMAGE_PATH = "assets/Feuille",
-    --LEAF_SPAWN_CHANCE = 10,
-    --LEAF_OSCILLATION_SPEED = 2.5,
-    --LEAF_OSCILLATION_AMOUNT = 0.3,
 
     SAW_IMAGE_PATH = "assets/Scie",
     SAW_ROTATION_SPEED = 180,
@@ -21,15 +17,27 @@ GameConstants = {
 
     POT_IMAGE_PATH = "assets/PotDeFleur",
 
-    BACKGROUND_IMAGE_PATH = "assets/Clouds/BigCloud2",
-    BACKGROUND_IMAGE_SCALE = 1,
-    BG_PARALLAX_SPEED = 0.12,
-    BG_VERTICAL_OFFSET = 0,
-    BG_CLOUD_MARGIN = 10,
-    BG_CLOUD_COUNT_MIN = 3,
-    BG_CLOUD_COUNT_MAX = 6,
-    BG_CLOUD_SPAWN_CLIMB = 500,
-    BG_CLOUD_HARD_CAP = 120,
+    -- Fréquence des obstacles
+    OBSTACLE_SPAWN_INTERVAL_START = 5000,
+    OBSTACLE_SPAWN_INTERVAL_MIN = 3500,
+    OBSTACLE_DIFFICULTY_STEP = 1000,
+    OBSTACLE_DIFFICULTY_REDUCTION = 250,
+
+    -- Background parallax
+    BG_MOUNTAINS_PATH = "assets/Background/Montagnes",
+    BG_MOUNTAINS_SCALE = 1,
+
+    BG_LAYER1_IMAGES = {
+        "assets/Background/BigCloud2",
+        "assets/Background/MoyenCloud2",
+    },
+    BG_LAYER1_SCALE = 1,
+    BG_LAYER1_PARALLAX_SPEED = 0.08,
+    BG_LAYER1_MARGIN = 20,
+    BG_LAYER1_COUNT_MIN = 2,
+    BG_LAYER1_COUNT_MAX = 4,
+    BG_LAYER1_HARD_CAP = 60,
+    BG_LAYER1_SPAWN_CLIMB = 800,
 
     BONUS_SIZE = 35,
     BONUS_SPAWN_INTERVAL = 1000,

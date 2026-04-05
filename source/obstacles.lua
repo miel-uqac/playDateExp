@@ -151,17 +151,24 @@ obstacles = {}
 local spawnTimer = 0
 local spawnInterval = 5000
 
-function updateObstacles(dt, scrollOffset)
+function updateObstacles(dt, scrollOffset, score)
+    local difficultyLevel = math.floor(score / C.OBSTACLE_DIFFICULTY_STEP)
+    local reduction = difficultyLevel * C.OBSTACLE_DIFFICULTY_REDUCTION
+    local currentInterval = math.max(
+        C.OBSTACLE_SPAWN_INTERVAL_MIN,
+        C.OBSTACLE_SPAWN_INTERVAL_START - reduction
+    )
+
     spawnTimer = spawnTimer + dt * 1000
-    if spawnTimer >= spawnInterval then
+    if spawnTimer >= currentInterval then
         spawnTimer = 0
 
         local roll = math.random()
-        if roll > 0.75 then
+        if roll > 0.3 then
             local scale = C.SAW_SIZE_MIN + math.random() * (C.SAW_SIZE_MAX - C.SAW_SIZE_MIN)
             local x = math.random(30, C.SCREEN_WIDTH - 30)
             table.insert(obstacles, Saw.new(x, -80, scale))
-        elseif roll > 0.25 then
+        else
             local x = math.random(10, C.SCREEN_WIDTH - 34)
             table.insert(obstacles, FallingPot.new(x))
         end
