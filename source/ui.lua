@@ -50,10 +50,8 @@ function UI.resetHUDLayout()
 end
 
 function UI.drawStartMenu(gfx, bestScore)
-    gfx.clear()
-    gfx.drawTextAligned("PLANT CLIMBER", C.SCREEN_WIDTH / 2, 90, kTextAlignment.center)
-    gfx.drawTextAligned("A : Jouer", C.SCREEN_WIDTH / 2, 120, kTextAlignment.center)
-    gfx.drawTextAligned("Best: " .. tostring(math.floor(bestScore)), C.SCREEN_WIDTH / 2, 180, kTextAlignment.center)
+    gfx.drawTextAligned("A : Jouer", C.SCREEN_WIDTH / 2, 100, kTextAlignment.center)
+    gfx.drawTextAligned("Best: " .. tostring(math.floor(bestScore)), C.SCREEN_WIDTH / 2, 120, kTextAlignment.center)
 end
 
 function UI.drawGameOver(gfx, score, bestScore)

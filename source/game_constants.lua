@@ -24,6 +24,8 @@ GameConstants = {
     OBSTACLE_DIFFICULTY_REDUCTION = 250,
 
     -- Background parallax
+    BG_MENU_PATH = "assets/Background/Montagne",
+    BG_MENU_TITLE_PATH = "assets/Background/Title",
     BG_MOUNTAINS_PATH = "assets/Background/Montagnes",
     BG_MOUNTAINS_SCALE = 1,
 

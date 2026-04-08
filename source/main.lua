@@ -47,6 +47,14 @@ if loadedMountain then
     mountainImage = loadedMountain:scaledImage(C.BG_MOUNTAINS_SCALE)
 end
 
+-- Main menu background
+local menuBackgroundImage = gfx.image.new(C.BG_MENU_PATH)
+local menuTitleImage = gfx.image.new(C.BG_MENU_TITLE_PATH)
+local menuCloudTopLeftImage = gfx.image.new("assets/Background/MoyenCloud2")
+local menuCloudTopRightImage = gfx.image.new("assets/Background/MoyenCloud2")
+local menuCloudYOffset = 12
+local menuRightCloudYOffset = 95
+
 -- Fonction générique pour initialiser une couche de parallax
 local function createParallaxLayer(config)
     local layer = {
@@ -299,6 +307,25 @@ function playdate.update()
 
     if gameState == C.STATE_MENU then
         Audio.playMenuMusic()
+        if menuBackgroundImage then
+            menuBackgroundImage:draw(0, 0)
+        else
+            gfx.clear()
+        end
+        if menuCloudTopLeftImage then
+            menuCloudTopLeftImage:draw(0, menuCloudYOffset)
+        end
+        if menuCloudTopRightImage then
+            local rightCloudWidth = menuCloudTopRightImage:getSize()
+            local rightCloudX = C.SCREEN_WIDTH - rightCloudWidth
+            menuCloudTopRightImage:draw(rightCloudX, menuRightCloudYOffset)
+        end
+        if menuTitleImage then
+            local titleWidth = menuTitleImage:getSize()
+            local titleX = math.floor((C.SCREEN_WIDTH - titleWidth) / 2)
+            local titleY = 0
+            menuTitleImage:draw(titleX, titleY)
+        end
         UI.drawStartMenu(gfx, bestScore)
         if playdate.buttonJustPressed(playdate.kButtonA) then
             startGame()
