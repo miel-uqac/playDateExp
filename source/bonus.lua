@@ -53,7 +53,11 @@ function ScoreBonus:draw(gfx)
     gfx.fillCircleAtPoint(self.x, self.y, self.w / 2)
     gfx.setColor(gfx.kColorBlack)
     gfx.drawCircleAtPoint(self.x, self.y, self.w / 2)
-    gfx.drawTextAligned("x2", self.x, self.y - 5, kTextAlignment.center)
+    local label = "x2"
+    local textWidth, textHeight = gfx.getTextSize(label)
+    local textX = math.floor(self.x - (textWidth / 2))
+    local textY = math.floor(self.y - (textHeight / 2)) + 2
+    gfx.drawText(label, textX, textY)
 end
 
 function ScoreBonus:onCollect()

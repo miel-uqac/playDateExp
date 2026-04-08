@@ -371,6 +371,7 @@ end
 
 resetGame = function()
     score = 0
+    UI.resetHUDLayout()
     clearObstacles()
     Plant.reset()
     resetLayer(layer1)
