@@ -372,6 +372,7 @@ function playdate.update()
     end
 
     Plant.drawStem(gfx)
+    Plant.drawLeaves(gfx)
     UI.drawHUD(gfx, score, bonusEffect)
     drawObstacles()
     Plant.drawHead(gfx, playerImage)

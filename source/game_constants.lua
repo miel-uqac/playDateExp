@@ -58,6 +58,9 @@ GameConstants = {
     PATH_SMOOTH = 0.25,
     STEM_RADIUS = 2,
 
+    LEAF_IMAGE_PATH = "assets/Feuille",
+    LEAF_SPAWN_CHANCE = 60,
+
     HEAD_CLAMP_X_MARGIN = 5,
     HEAD_CLAMP_TOP = 10,
     HEAD_CLAMP_BOTTOM_PADDING = 100,
