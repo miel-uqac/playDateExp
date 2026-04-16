@@ -1,12 +1,14 @@
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/crank"
-import "obstacles"
 import "game_constants"
+import "obstacles"
 import "ui"
 import "plant"
 import "bonus"
 import "audio"
+import "background"
+import "savedata"
 
 local graphics = playdate.graphics
 local Config = GameConstants
@@ -19,23 +21,8 @@ else
 end
 
 local gameState = Config.STATE_MENU
-
--- Sauvegarde simple du meilleur score dans le stockage local de la console.
-local function saveBestScore(newBest)
-    local data = { highscore = newBest }
-    playdate.datastore.write(data, "saveData")
-end
-
-local function loadBestScore()
-    local data = playdate.datastore.read("saveData")
-    if data and data.highscore then
-        return data.highscore
-    end
-    return 0
-end
-
 local score = 0
-local bestScore = loadBestScore()
+local bestScore = SaveData.loadBestScore()
 
 local playerImage = nil
 local playerCollisionRadius = Config.PLAYER_HITBOX_RADIUS
@@ -45,179 +32,12 @@ if loadedImage then
     playerImage = loadedImage:scaledImage(Config.PLAYER_SCALE)
 end
 
-local mountainImage = nil
-local loadedMountain = graphics.image.new(Config.BG_MOUNTAINS_PATH)
-if loadedMountain then
-    mountainImage = loadedMountain:scaledImage(Config.BG_MOUNTAINS_SCALE)
-end
-
--- Fond du menu principal.
-local menuBackgroundImage = graphics.image.new(Config.BG_MENU_PATH)
-local menuTitleImage = graphics.image.new(Config.BG_MENU_TITLE_PATH)
-local menuLeftCloudImage = graphics.image.new(Config.BG_MENU_CLOUD_PATH)
-local menuRightCloudImage = graphics.image.new(Config.BG_MENU_CLOUD_PATH)
-local menuLeftCloudY = Config.MENU_CLOUD_LEFT_Y
-local menuRightCloudY = Config.MENU_CLOUD_RIGHT_Y
-
--- Construit une couche de parallaxe avec plusieurs images réutilisables.
-local function createParallaxLayer(config)
-    local layer = {
-        images = {},
-        clouds = {},
-        spawnAccumulator = 0,
-        config = config,
-        imageWidth = 0,
-        imageHeight = 0,
-    }
-
-    for _, path in ipairs(config.imagePaths) do
-        local loaded = graphics.image.new(path)
-        if loaded then
-            local scaled = loaded:scaledImage(config.scale)
-            table.insert(layer.images, scaled)
-        end
-    end
-
-    if #layer.images > 0 then
-        layer.imageWidth, layer.imageHeight = layer.images[1]:getSize()
-    end
-
-    return layer
-end
-
-local foregroundCloudLayer = createParallaxLayer({
-    imagePaths = Config.BG_LAYER1_IMAGES,
-    scale = Config.BG_LAYER1_SCALE,
-    parallaxSpeed = Config.BG_LAYER1_PARALLAX_SPEED,
-    margin = Config.BG_LAYER1_MARGIN,
-    countMin = Config.BG_LAYER1_COUNT_MIN,
-    countMax = Config.BG_LAYER1_COUNT_MAX,
-    hardCap = Config.BG_LAYER1_HARD_CAP,
-    spawnClimb = Config.BG_LAYER1_SPAWN_CLIMB,
-})
-
--- Vérifie si deux nuages se chevauchent dans la même couche.
-local function cloudsOverlap(layer, x1, y1, x2, y2)
-    local w = layer.imageWidth
-    local h = layer.imageHeight
-    local margin = layer.config.margin
-    return not (
-        x1 + w + margin < x2 or x2 + w + margin < x1 or
-        y1 + h + margin < y2 or y2 + h + margin < y1
-    )
-end
-
-local function buildLayerSlots(layer, minY, maxY)
-    local slots = {}
-    local stepX = layer.imageWidth + layer.config.margin * 2
-    local stepY = layer.imageHeight + layer.config.margin * 2
-    local yMin = minY or (-layer.imageHeight)
-    local yMax = maxY or (Config.SCREEN_HEIGHT - layer.imageHeight)
-
-    for y = yMin, yMax, stepY do
-        for x = -layer.imageWidth, Config.SCREEN_WIDTH, stepX do
-            slots[#slots + 1] = { x = x, y = y }
-        end
-    end
-
-    for i = #slots, 2, -1 do
-        local j = math.random(i)
-        slots[i], slots[j] = slots[j], slots[i]
-    end
-
-    return slots
-end
-
-local function placeLayerCloud(layer, cloud, minY, maxY)
-    local slots = buildLayerSlots(layer, minY, maxY)
-    for _, slot in ipairs(slots) do
-        local overlaps = false
-        for _, other in ipairs(layer.clouds) do
-            if other ~= cloud and cloudsOverlap(layer, slot.x, slot.y, other.x, other.y) then
-                overlaps = true
-                break
-            end
-        end
-        if not overlaps then
-            cloud.x = slot.x
-            cloud.y = slot.y
-            return true
-        end
-    end
-    return false
-end
-
-local function respawnLayerCloud(layer, cloud)
-    local h = layer.imageHeight
-    local placed = placeLayerCloud(layer, cloud, -h * 4, -h)
-    if not placed then
-        cloud.x = math.random(-layer.imageWidth, Config.SCREEN_WIDTH - layer.imageWidth)
-        cloud.y = math.random(-h * 4, -h)
-    end
-    cloud.speed = 0.7 + math.random() * 0.6
-    cloud.imageIndex = math.random(#layer.images)
-end
-
-local function resetLayer(layer)
-    layer.clouds = {}
-    layer.spawnAccumulator = 0
-    if #layer.images == 0 then return end
-
-    local count = math.random(layer.config.countMin, layer.config.countMax)
-    for i = 1, count do
-        local cloud = {}
-        layer.clouds[i] = cloud
-        local placed = placeLayerCloud(layer, cloud)
-        if not placed then
-            cloud.x = math.random(-layer.imageWidth, Config.SCREEN_WIDTH - layer.imageWidth)
-            cloud.y = math.random(-layer.imageHeight, Config.SCREEN_HEIGHT - layer.imageHeight)
-        end
-        cloud.speed = 0.7 + math.random() * 0.6
-        cloud.imageIndex = math.random(#layer.images)
-    end
-end
-
-local function spawnLayerCloudFromTop(layer)
-    if #layer.clouds >= layer.config.hardCap then return end
-    local cloud = {}
-    layer.clouds[#layer.clouds + 1] = cloud
-    respawnLayerCloud(layer, cloud)
-end
-
-local function updateAndDrawLayer(layer, scrollOffset, climbDelta)
-    if #layer.images == 0 then return end
-
-    if climbDelta > 0 then
-        layer.spawnAccumulator = layer.spawnAccumulator + climbDelta
-        while layer.spawnAccumulator >= layer.config.spawnClimb do
-            layer.spawnAccumulator = layer.spawnAccumulator - layer.config.spawnClimb
-            spawnLayerCloudFromTop(layer)
-        end
-    end
-
-    local h = layer.imageHeight
-    for i = 1, #layer.clouds do
-        local cloud = layer.clouds[i]
-        if cloud.x and cloud.y and cloud.speed then
-            cloud.y = cloud.y + (scrollOffset * layer.config.parallaxSpeed * cloud.speed)
-
-            if cloud.y < -h - 20 or cloud.y > Config.SCREEN_HEIGHT + 20 then
-                respawnLayerCloud(layer, cloud)
-            end
-
-            local img = layer.images[cloud.imageIndex or 1]
-            if img then
-                img:draw(cloud.x, cloud.y)
-            end
-        end
-    end
-end
-
 Audio.load()
+Background.load()
 
 local activeBonuses = {}
 local activeBonusEffect = nil
-local nextBonusThreshold = 800
+local nextBonusThreshold = Config.BONUS_SPAWN_INTERVAL
 local scoreMultiplier = 1
 
 local resetGame
@@ -232,44 +52,38 @@ end
 
 local function hasPlayerObstacleCollision()
     local playerHeadX, playerHeadY = Plant.getSmoothHeadPosition()
-
     for _, obstacle in ipairs(activeObstacles) do
         local collisionActive = true
         if obstacle.canCollide and not obstacle:canCollide() then
             collisionActive = false
         end
-
         if collisionActive then
             if obstacle.radius then
                 local dx = playerHeadX - obstacle.centerX
                 local dy = playerHeadY - obstacle.centerY
-                local distanceSquared = dx * dx + dy * dy
-                local combinedRadius = playerCollisionRadius + obstacle.radius
-                if distanceSquared < combinedRadius * combinedRadius then
-                    return true
-                end
+                local distSq = dx * dx + dy * dy
+                local r = playerCollisionRadius + obstacle.radius
+                if distSq < r * r then return true end
             else
                 local closestX = clamp(playerHeadX, obstacle.x, obstacle.x + obstacle.w)
                 local closestY = clamp(playerHeadY, obstacle.y, obstacle.y + obstacle.h)
                 local dx = playerHeadX - closestX
                 local dy = playerHeadY - closestY
-                local distanceSquared = dx * dx + dy * dy
-                if distanceSquared < playerCollisionRadius * playerCollisionRadius then
+                if dx * dx + dy * dy < playerCollisionRadius * playerCollisionRadius then
                     return true
                 end
             end
         end
     end
-
     return false
 end
 
 local function updateBonuses(deltaTime, scrollOffset)
-    local playerHeadX, playerHeadY = Plant.getSmoothHeadPosition()
+    local px, py = Plant.getSmoothHeadPosition()
     for i = #activeBonuses, 1, -1 do
         local bonus = activeBonuses[i]
         bonus:update(deltaTime, scrollOffset)
-        if not bonus.collected and bonus:checkCollision(playerHeadX, playerHeadY, playerCollisionRadius) then
+        if not bonus.collected and bonus:checkCollision(px, py, playerCollisionRadius) then
             bonus.collected = true
             local effect = bonus:onCollect()
             if effect then
@@ -290,7 +104,7 @@ local function updateBonuses(deltaTime, scrollOffset)
     end
 end
 
-local function drawBonuses(graphics)
+local function drawBonuses()
     for _, bonus in ipairs(activeBonuses) do
         bonus:draw(graphics)
     end
@@ -309,25 +123,7 @@ function playdate.update()
 
     if gameState == Config.STATE_MENU then
         Audio.playMenuMusic()
-        if menuBackgroundImage then
-            menuBackgroundImage:draw(0, 0)
-        else
-            graphics.clear()
-        end
-        if menuLeftCloudImage then
-            menuLeftCloudImage:draw(0, menuLeftCloudY)
-        end
-        if menuRightCloudImage then
-            local rightCloudWidth = menuRightCloudImage:getSize()
-            local rightCloudX = Config.SCREEN_WIDTH - rightCloudWidth
-            menuRightCloudImage:draw(rightCloudX, menuRightCloudY)
-        end
-        if menuTitleImage then
-            local titleWidth = menuTitleImage:getSize()
-            local titleX = math.floor((Config.SCREEN_WIDTH - titleWidth) / 2)
-            local titleY = 0
-            menuTitleImage:draw(titleX, titleY)
-        end
+        Background.drawMenu()
         UI.drawStartMenu(graphics, bestScore)
         if playdate.buttonJustPressed(playdate.kButtonA) then
             startGame()
@@ -345,9 +141,7 @@ function playdate.update()
         return
     end
 
-    if gameState ~= Config.STATE_PLAYING then
-        return
-    end
+    if gameState ~= Config.STATE_PLAYING then return end
 
     if playdate.buttonJustPressed(playdate.kButtonB) then
         gameState = Config.STATE_MENU
@@ -360,11 +154,7 @@ function playdate.update()
     local crankDelta = playdate.getCrankChange()
     local scrollOffset, climbDelta, playerWentOffscreen = Plant.update(deltaTime, crankDelta)
 
-    if mountainImage then
-        mountainImage:draw(0, 0)
-    end
-    updateAndDrawLayer(foregroundCloudLayer, scrollOffset, climbDelta)
-
+    Background.update(scrollOffset, climbDelta)
     updateObstacles(deltaTime, scrollOffset, score)
     score = score + (climbDelta * scoreMultiplier)
 
@@ -381,7 +171,7 @@ function playdate.update()
 
     spawnBonusWhenNeeded()
     updateBonuses(deltaTime, scrollOffset)
-    drawBonuses(graphics)
+    drawBonuses()
 
     if hasPlayerObstacleCollision() then
         gameOver()
@@ -404,7 +194,7 @@ resetGame = function()
     UI.resetHUDLayout()
     clearObstacles()
     Plant.reset()
-    resetLayer(foregroundCloudLayer)
+    Background.reset()
     activeBonuses = {}
     activeBonusEffect = nil
     scoreMultiplier = 1
@@ -422,16 +212,15 @@ gameOver = function()
     gameState = Config.STATE_GAMEOVER
     if score > bestScore then
         bestScore = score
-        saveBestScore(bestScore)
+        SaveData.saveBestScore(bestScore)
     end
     Audio.playGameOver()
 end
 
--- Pour enregistrer quand on quitte le jeu
 function playdate.gameWillTerminate()
-    saveBestScore(bestScore)
+    SaveData.saveBestScore(bestScore)
 end
 
 function playdate.deviceWillSleep()
-    saveBestScore(bestScore)
+    SaveData.saveBestScore(bestScore)
 end

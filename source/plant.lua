@@ -13,6 +13,8 @@ local growthDirection = -math.pi / 2
 local leafSprite = nil
 local leafSpriteWidth = 0
 local leafSpriteHeight = 0
+local leafSpawnTimer = 0
+local LEAF_SPAWN_INTERVAL = 1.0
 
 local function lerp(a, b, t)
     return a + (b - a) * t
@@ -66,10 +68,6 @@ local function maybeSpawnLeaf(x, y)
         return
     end
 
-    if math.random(Config.LEAF_SPAWN_CHANCE) ~= 1 then
-        return
-    end
-
     attachedLeaves[#attachedLeaves + 1] = {
         x = x,
         y = y,
@@ -88,7 +86,14 @@ local function appendStemPointIfNeeded()
 
     if (dx * dx + dy * dy) >= (Config.MIN_STEP_DISTANCE * Config.MIN_STEP_DISTANCE) then
         stemPoints[#stemPoints + 1] = { x = smoothedHeadX, y = smoothedHeadY }
-        maybeSpawnLeaf(smoothedHeadX, smoothedHeadY)
+        if leafSpawnTimer >= LEAF_SPAWN_INTERVAL then
+            leafSpawnTimer = 0
+            attachedLeaves[#attachedLeaves + 1] = {
+                x = smoothedHeadX,
+                y = smoothedHeadY,
+                flip = getLeafFlipForSpawn(smoothedHeadX, smoothedHeadY),
+            }
+        end
 
         if #stemPoints > Config.MAX_STEM_POINTS or (stemPoints[1] and stemPoints[1].y > Config.SCREEN_HEIGHT + 50) then
             table.remove(stemPoints, 1)
@@ -99,6 +104,7 @@ end
 function Plant.reset()
     stemPoints = {}
     attachedLeaves = {}
+    leafSpawnTimer = 0 
     plantHeadX, plantHeadY = Config.SCREEN_WIDTH / 2, 200
     smoothedHeadX, smoothedHeadY = plantHeadX, plantHeadY
     growthDirection = -math.pi / 2
@@ -119,6 +125,7 @@ end
 
 function Plant.update(deltaTime, crankDelta)
     local previousHeadY = plantHeadY
+    leafSpawnTimer = leafSpawnTimer + deltaTime
     local scrollOffset = Config.SCROLL_SPEED * deltaTime
 
     for i = 1, #stemPoints do
