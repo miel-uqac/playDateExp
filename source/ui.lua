@@ -1,64 +1,64 @@
 import "game_constants"
 
 UI = {}
-UI.hudScoreBoxWidth = 0
-UI.hudBonusBoxWidth = 0
+UI.hudScorePanelWidth = 0
+UI.hudBonusPanelWidth = 0
 
-local C = GameConstants
+local Config = GameConstants
 
-function UI.drawHUD(gfx, score, bonusEffect)
-    local textPaddingX = 6
-    local textPaddingY = 3
-    local widthSafetyMargin = 1
-    local boxHeight = 20
-    local boxX = 4
-    local boxY = 2
-    local boxGap = 1
-    local scoreFloor = math.floor(score)
-    local scoreText = "Score: " .. tostring(scoreFloor)
-    local scoreTextWidth = gfx.getTextSize(scoreText)
-    local desiredScoreBaseWidth = scoreTextWidth + (textPaddingX * 2)
-    UI.hudScoreBoxWidth = math.max(UI.hudScoreBoxWidth, desiredScoreBaseWidth)
-    local boxWidth = UI.hudScoreBoxWidth + widthSafetyMargin
+function UI.drawHUD(graphics, score, activeBonusEffect)
+    local horizontalPadding = 6
+    local verticalPadding = 3
+    local safetyMargin = 1
+    local panelHeight = 20
+    local panelX = 4
+    local panelY = 2
+    local panelSpacing = 1
 
-    gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(boxX, boxY, boxWidth, boxHeight)
-    gfx.setColor(gfx.kColorBlack)
-    gfx.drawRect(boxX, boxY, boxWidth, boxHeight)
-    gfx.drawText(scoreText, boxX + textPaddingX, boxY + textPaddingY)
+    local scoreText = "Score: " .. tostring(math.floor(score))
+    local scoreTextWidth = graphics.getTextSize(scoreText)
+    local desiredScorePanelWidth = scoreTextWidth + (horizontalPadding * 2)
+    UI.hudScorePanelWidth = math.max(UI.hudScorePanelWidth, desiredScorePanelWidth)
+    local scorePanelWidth = UI.hudScorePanelWidth + safetyMargin
 
-    -- Gestion de la boite de bonus
-    if bonusEffect then
-        local bonusText = "x2 " .. tostring(math.ceil(bonusEffect.timer)) .. "s"
-        local bonusTextWidth = gfx.getTextSize(bonusText)
-        local desiredBonusBaseWidth = bonusTextWidth + (textPaddingX * 2)
-        UI.hudBonusBoxWidth = math.max(UI.hudBonusBoxWidth, desiredBonusBaseWidth, UI.hudScoreBoxWidth)
-        local bonusBoxWidth = UI.hudBonusBoxWidth + widthSafetyMargin
-        local bonusBoxY = boxY + boxHeight + boxGap
+    graphics.setColor(graphics.kColorWhite)
+    graphics.fillRect(panelX, panelY, scorePanelWidth, panelHeight)
+    graphics.setColor(graphics.kColorBlack)
+    graphics.drawRect(panelX, panelY, scorePanelWidth, panelHeight)
+    graphics.drawText(scoreText, panelX + horizontalPadding, panelY + verticalPadding)
 
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(boxX, bonusBoxY, bonusBoxWidth, boxHeight)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(boxX, bonusBoxY, bonusBoxWidth, boxHeight)
-        gfx.drawText(bonusText, boxX + textPaddingX, bonusBoxY + textPaddingY)
+    -- La ligne de bonus est affichée seulement lorsqu'un effet est actif.
+    if activeBonusEffect then
+        local bonusText = "x2 " .. tostring(math.ceil(activeBonusEffect.timer)) .. "s"
+        local bonusTextWidth = graphics.getTextSize(bonusText)
+        local desiredBonusPanelWidth = bonusTextWidth + (horizontalPadding * 2)
+        UI.hudBonusPanelWidth = math.max(UI.hudBonusPanelWidth, desiredBonusPanelWidth)
+        local bonusPanelWidth = UI.hudBonusPanelWidth + safetyMargin
+        local bonusPanelY = panelY + panelHeight + panelSpacing
+
+        graphics.setColor(graphics.kColorWhite)
+        graphics.fillRect(panelX, bonusPanelY, bonusPanelWidth, panelHeight)
+        graphics.setColor(graphics.kColorBlack)
+        graphics.drawRect(panelX, bonusPanelY, bonusPanelWidth, panelHeight)
+        graphics.drawText(bonusText, panelX + horizontalPadding, bonusPanelY + verticalPadding)
     end
 end
 
 function UI.resetHUDLayout()
-    UI.hudScoreBoxWidth = 0
-    UI.hudBonusBoxWidth = 0
+    UI.hudScorePanelWidth = 0
+    UI.hudBonusPanelWidth = 0
 end
 
-function UI.drawStartMenu(gfx, bestScore)
-    gfx.drawTextAligned("A : Jouer", C.SCREEN_WIDTH / 2, 100, kTextAlignment.center)
-    gfx.drawTextAligned("Best: " .. tostring(math.floor(bestScore)), C.SCREEN_WIDTH / 2, 120, kTextAlignment.center)
+function UI.drawStartMenu(graphics, bestScore)
+    graphics.drawTextAligned("A : Jouer", Config.SCREEN_WIDTH / 2, 100, kTextAlignment.center)
+    graphics.drawTextAligned("Best: " .. tostring(math.floor(bestScore)), Config.SCREEN_WIDTH / 2, 120, kTextAlignment.center)
 end
 
-function UI.drawGameOver(gfx, score, bestScore)
-    gfx.clear()
-    gfx.drawTextAligned("GAME OVER", C.SCREEN_WIDTH / 2, 80, kTextAlignment.center)
-    gfx.drawTextAligned("Score: " .. tostring(math.floor(score)), C.SCREEN_WIDTH / 2, 110, kTextAlignment.center)
-    gfx.drawTextAligned("Best:  " .. tostring(math.floor(bestScore)), C.SCREEN_WIDTH / 2, 130, kTextAlignment.center)
-    gfx.drawTextAligned("A : Rejouer", C.SCREEN_WIDTH / 2, 170, kTextAlignment.center)
-    gfx.drawTextAligned("B : Menu", C.SCREEN_WIDTH / 2, 190, kTextAlignment.center)
+function UI.drawGameOver(graphics, score, bestScore)
+    graphics.clear()
+    graphics.drawTextAligned("GAME OVER", Config.SCREEN_WIDTH / 2, 80, kTextAlignment.center)
+    graphics.drawTextAligned("Score: " .. tostring(math.floor(score)), Config.SCREEN_WIDTH / 2, 110, kTextAlignment.center)
+    graphics.drawTextAligned("Best:  " .. tostring(math.floor(bestScore)), Config.SCREEN_WIDTH / 2, 130, kTextAlignment.center)
+    graphics.drawTextAligned("A : Rejouer", Config.SCREEN_WIDTH / 2, 170, kTextAlignment.center)
+    graphics.drawTextAligned("B : Menu", Config.SCREEN_WIDTH / 2, 190, kTextAlignment.center)
 end

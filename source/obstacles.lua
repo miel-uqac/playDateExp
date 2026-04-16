@@ -1,6 +1,7 @@
-local gfx <const> = playdate.graphics
+-- Gestion des obstacles et de leur cycle de vie.
+local graphics <const> = playdate.graphics
 import "game_constants"
-local C <const> = GameConstants
+local Config <const> = GameConstants
 
 
 -- Classe de base : Obstacle
@@ -23,7 +24,7 @@ function Obstacle:draw()
 end
 
 function Obstacle:isOffscreen()
-    return self.y > C.SCREEN_HEIGHT
+    return self.y > Config.SCREEN_HEIGHT
 end
 
 
@@ -32,12 +33,12 @@ FallingPot = setmetatable({}, {__index = Obstacle})
 FallingPot.__index = FallingPot
 
 local potImage = nil
-local loadedPot = gfx.image.new(C.POT_IMAGE_PATH)
+local loadedPot = graphics.image.new(Config.POT_IMAGE_PATH)
 if loadedPot then
     potImage = loadedPot
     print("Image du pot chargee avec succes !")
 else
-    print("Erreur : Impossible de charger l'image du pot a : " .. C.POT_IMAGE_PATH)
+    print("Erreur : Impossible de charger l'image du pot a : " .. Config.POT_IMAGE_PATH)
 end
 
 function FallingPot.new(x)
@@ -45,14 +46,14 @@ function FallingPot.new(x)
     if potImage then
         potWidth, potHeight = potImage:getSize()
     else
-        potWidth = 24
-        potHeight = 24
+        potWidth = Config.POT_DEFAULT_SIZE
+        potHeight = Config.POT_DEFAULT_SIZE
     end
 
     local self = Obstacle.new(x, 10, potWidth, potHeight)
     self.state = "warning"
-    self.timer = 1500
-    self.speed = 180
+    self.warningTimeRemainingMs = Config.POT_WARNING_DURATION_MS
+    self.fallSpeed = Config.POT_FALL_SPEED
     return setmetatable(self, FallingPot)
 end
 
@@ -62,36 +63,36 @@ end
 
 function FallingPot:update(dt, scrollOffset)
     if self.state == "warning" then
-        self.timer = self.timer - (dt * 1000)
-        if self.timer <= 0 then
+        self.warningTimeRemainingMs = self.warningTimeRemainingMs - (dt * 1000)
+        if self.warningTimeRemainingMs <= 0 then
             self.state = "falling"
             self.y = -self.h 
         end
     elseif self.state == "falling" then
-        self.y = self.y + (self.speed * dt) + scrollOffset
+        self.y = self.y + (self.fallSpeed * dt) + scrollOffset
     end
 end
 
 function FallingPot:draw()
     if self.state == "warning" then
-        if math.floor(self.timer / 100) % 2 == 0 then
-            gfx.setColor(gfx.kColorBlack)
+        if math.floor(self.warningTimeRemainingMs / 100) % 2 == 0 then
+            graphics.setColor(graphics.kColorBlack)
             
-            local warningSize = 25
+            local warningSize = Config.POT_WARNING_BOX_SIZE
             local centerX = self.x + self.w / 2
             local warningX = centerX - (warningSize / 2)
-            local warningY = 10 
+            local warningY = Config.POT_WARNING_BOX_Y
             
-            gfx.drawRect(warningX, warningY, warningSize, warningSize)
-            gfx.drawTextAligned("!", centerX, warningY + 1, kTextAlignment.center)
+            graphics.drawRect(warningX, warningY, warningSize, warningSize)
+            graphics.drawTextAligned("!", centerX, warningY + 1, kTextAlignment.center)
         end
     elseif self.state == "falling" then
-        gfx.setColor(gfx.kColorBlack)
+        graphics.setColor(graphics.kColorBlack)
         if potImage then
             potImage:draw(self.x, self.y)
         else
-            gfx.fillRect(self.x, self.y, self.w, self.h)
-            gfx.fillRect(self.x - 3, self.y, self.w + 6, 6)
+            graphics.fillRect(self.x, self.y, self.w, self.h)
+            graphics.fillRect(self.x - 3, self.y, self.w + 6, 6)
         end
     end
 end
@@ -102,12 +103,12 @@ Saw = setmetatable({}, {__index = Obstacle})
 Saw.__index = Saw
 
 local sawImage = nil
-local loadedSaw = gfx.image.new(C.SAW_IMAGE_PATH)
+local loadedSaw = graphics.image.new(Config.SAW_IMAGE_PATH)
 if loadedSaw then
     sawImage = loadedSaw
     print("Image scie chargee !")
 else
-    print("Erreur : Impossible de charger la scie a : " .. C.SAW_IMAGE_PATH)
+    print("Erreur : Impossible de charger la scie a : " .. Config.SAW_IMAGE_PATH)
 end
 
 function Saw.new(x, y, scale)
@@ -121,7 +122,7 @@ function Saw.new(x, y, scale)
 
     local self = Obstacle.new(x - baseW / 2, y, baseW, baseH)
     self.scale = scale
-    self.angle = 0
+    self.rotationAngle = 0
     self.centerX = x
     self.centerY = y + baseH / 2
     self.radius = baseW / 2
@@ -132,64 +133,62 @@ end
 function Saw:update(dt, scrollOffset)
     self.y = self.y + scrollOffset
     self.centerY = self.centerY + scrollOffset
-    self.angle = (self.angle + C.SAW_ROTATION_SPEED * dt) % 360
+    self.rotationAngle = (self.rotationAngle + Config.SAW_ROTATION_SPEED * dt) % 360
 end
 
 function Saw:draw()
     if self.scaledImage then
-        self.scaledImage:drawRotated(self.centerX, self.centerY, self.angle)
+        self.scaledImage:drawRotated(self.centerX, self.centerY, self.rotationAngle)
     else
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawCircleAtPoint(self.centerX, self.centerY, self.w / 2)
-        gfx.drawLine(self.centerX - self.w / 2, self.centerY, self.centerX + self.w / 2, self.centerY)
-        gfx.drawLine(self.centerX, self.centerY - self.h / 2, self.centerX, self.centerY + self.h / 2)
+        graphics.setColor(graphics.kColorBlack)
+        graphics.drawCircleAtPoint(self.centerX, self.centerY, self.w / 2)
+        graphics.drawLine(self.centerX - self.w / 2, self.centerY, self.centerX + self.w / 2, self.centerY)
+        graphics.drawLine(self.centerX, self.centerY - self.h / 2, self.centerX, self.centerY + self.h / 2)
     end
 end
 
--- Gestion globale des obstacles
-obstacles = {}
-local spawnTimer = 0
-local spawnInterval = 5000
+-- Liste globale utilisée par main.lua pour dessiner et tester les collisions.
+activeObstacles = {}
+local spawnElapsedMs = 0
 
-function updateObstacles(dt, scrollOffset, score)
-    local difficultyLevel = math.floor(score / C.OBSTACLE_DIFFICULTY_STEP)
-    local reduction = difficultyLevel * C.OBSTACLE_DIFFICULTY_REDUCTION
-    local currentInterval = math.max(
-        C.OBSTACLE_SPAWN_INTERVAL_MIN,
-        C.OBSTACLE_SPAWN_INTERVAL_START - reduction
+function updateObstacles(deltaTime, scrollOffset, score)
+    local difficultyLevel = math.floor(score / Config.OBSTACLE_DIFFICULTY_STEP)
+    local reduction = difficultyLevel * Config.OBSTACLE_DIFFICULTY_REDUCTION
+    local spawnIntervalMs = math.max(
+        Config.OBSTACLE_SPAWN_INTERVAL_MIN,
+        Config.OBSTACLE_SPAWN_INTERVAL_START - reduction
     )
 
-    spawnTimer = spawnTimer + dt * 1000
-    if spawnTimer >= currentInterval then
-        spawnTimer = 0
+    spawnElapsedMs = spawnElapsedMs + deltaTime * 1000
+    if spawnElapsedMs >= spawnIntervalMs then
+        spawnElapsedMs = 0
 
-        local roll = math.random()
-        if roll > 0.3 then
-            local scale = C.SAW_SIZE_MIN + math.random() * (C.SAW_SIZE_MAX - C.SAW_SIZE_MIN)
-            local x = math.random(30, C.SCREEN_WIDTH - 30)
-            table.insert(obstacles, Saw.new(x, -80, scale))
+        if math.random() < Config.OBSTACLE_SAW_SPAWN_CHANCE then
+            local scale = Config.SAW_SIZE_MIN + math.random() * (Config.SAW_SIZE_MAX - Config.SAW_SIZE_MIN)
+            local x = math.random(30, Config.SCREEN_WIDTH - 30)
+            table.insert(activeObstacles, Saw.new(x, -80, scale))
         else
-            local x = math.random(10, C.SCREEN_WIDTH - 34)
-            table.insert(obstacles, FallingPot.new(x))
+            local x = math.random(10, Config.SCREEN_WIDTH - 34)
+            table.insert(activeObstacles, FallingPot.new(x))
         end
     end
 
-    for i = #obstacles, 1, -1 do
-        local o = obstacles[i]
-        o:update(dt, scrollOffset)
-        if o:isOffscreen() then
-            table.remove(obstacles, i)
+    for i = #activeObstacles, 1, -1 do
+        local obstacle = activeObstacles[i]
+        obstacle:update(deltaTime, scrollOffset)
+        if obstacle:isOffscreen() then
+            table.remove(activeObstacles, i)
         end
     end
 end
 
 function drawObstacles()
-    for _, o in ipairs(obstacles) do
-        o:draw()
+    for _, obstacle in ipairs(activeObstacles) do
+        obstacle:draw()
     end
 end
 
 function clearObstacles()
-    obstacles = {}
-    spawnTimer = 0
+    activeObstacles = {}
+    spawnElapsedMs = 0
 end

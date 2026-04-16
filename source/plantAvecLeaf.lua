@@ -1,32 +1,28 @@
--- import "game_constants"
+import "game_constants"
 
--- ATTENTION !!!!
--- Fichier a remplacer dans Plant pour ajouter les feuilles, quand on aura un asset correct
-
-
-
-
-
+-- Variante legacy de Plant avec des feuilles rotatives.
+-- Ce fichier reste dans le dépôt comme référence, mais il n'est pas branché dans main.lua.
 
 Plant = {}
 
-local C = GameConstants
-local gfx = playdate.graphics
+local Config = GameConstants
+local graphics <const> = playdate.graphics
 
-local points = {}
-local leaves = {}
-local headX, headY = C.SCREEN_WIDTH / 2, 200
-local smoothHeadX, smoothHeadY = C.SCREEN_WIDTH / 2, 200
-local dir = -math.pi / 2
-local leafSide = 1
-local totalTime = 0
-local leafImage = nil
-local loadedLeaf = gfx.image.new(C.LEAF_IMAGE_PATH)
+local stemPoints = {}
+local rotatingLeaves = {}
+local plantHeadX, plantHeadY = Config.SCREEN_WIDTH / 2, 200
+local smoothedHeadX, smoothedHeadY = Config.SCREEN_WIDTH / 2, 200
+local growthDirection = -math.pi / 2
+local spawnSide = 1
+local elapsedTime = 0
+local leafSprite = nil
+
+local loadedLeaf = graphics.image.new(Config.LEAF_IMAGE_PATH)
 if loadedLeaf then
-    leafImage = loadedLeaf
+    leafSprite = loadedLeaf
     print("Image feuille chargee !")
 else
-    print("Erreur : Impossible de charger la feuille a : " .. C.LEAF_IMAGE_PATH)
+    print("Erreur : Impossible de charger la feuille a : " .. Config.LEAF_IMAGE_PATH)
 end
 
 local function lerp(a, b, t)
@@ -39,13 +35,13 @@ local function clamp(x, minValue, maxValue)
     return x
 end
 
-local function drawStemSegment(gfx, x1, y1, x2, y2, radius)
+local function drawStemSegment(graphics, x1, y1, x2, y2, radius)
     local dx = x2 - x1
     local dy = y2 - y1
     local dist = math.sqrt(dx * dx + dy * dy)
 
     if dist < 0.001 then
-        gfx.fillCircleAtPoint(math.floor(x1 + 0.5), math.floor(y1 + 0.5), radius)
+        graphics.fillCircleAtPoint(math.floor(x1 + 0.5), math.floor(y1 + 0.5), radius)
         return
     end
 
@@ -56,99 +52,96 @@ local function drawStemSegment(gfx, x1, y1, x2, y2, radius)
         local t = s / steps
         local x = x1 + dx * t
         local y = y1 + dy * t
-        gfx.fillCircleAtPoint(math.floor(x + 0.5), math.floor(y + 0.5), radius)
+        graphics.fillCircleAtPoint(math.floor(x + 0.5), math.floor(y + 0.5), radius)
     end
 end
 
-local function trySpawnLeaf(x, y)
-    if math.random(C.LEAF_SPAWN_CHANCE) == 1 then
-        -- Angle de base perpendiculaire selon le côté
-        local baseAngle = leafSide == 1 and (math.pi / 2) or (-math.pi / 2)
+local function spawnLeafIfNeeded(x, y)
+    if math.random(Config.LEAF_SPAWN_CHANCE) == 1 then
+        local baseAngle = spawnSide == 1 and (math.pi / 2) or (-math.pi / 2)
         local leaf = {
             x = x,
             y = y,
-            side = leafSide,
+            side = spawnSide,
             baseAngle = baseAngle,
-            timeOffset = math.random() * math.pi * 2  -- phase aléatoire pour varier l'oscillation
+            timeOffset = math.random() * math.pi * 2,
         }
-        table.insert(leaves, leaf)
-        leafSide = -leafSide  -- alterne le côté
+        table.insert(rotatingLeaves, leaf)
+        spawnSide = -spawnSide
     end
 end
 
-local function updateStemPath()
-    local last = points[#points]
+local function appendStemPointIfNeeded()
+    local last = stemPoints[#stemPoints]
     if not last then return end
 
-    local dx = smoothHeadX - last.x
-    local dy = smoothHeadY - last.y
+    local dx = smoothedHeadX - last.x
+    local dy = smoothedHeadY - last.y
 
-    if (dx * dx + dy * dy) >= (C.MIN_STEP_DISTANCE * C.MIN_STEP_DISTANCE) then
-        points[#points + 1] = { x = smoothHeadX, y = smoothHeadY }
+    if (dx * dx + dy * dy) >= (Config.MIN_STEP_DISTANCE * Config.MIN_STEP_DISTANCE) then
+        stemPoints[#stemPoints + 1] = { x = smoothedHeadX, y = smoothedHeadY }
+        spawnLeafIfNeeded(smoothedHeadX, smoothedHeadY)
 
-        -- Tentative de spawn d'une feuille sur ce nouveau point
-        trySpawnLeaf(smoothHeadX, smoothHeadY)
-
-        if #points > C.MAX_STEM_POINTS or (points[1] and points[1].y > C.SCREEN_HEIGHT + 50) then
-            table.remove(points, 1)
+        if #stemPoints > Config.MAX_STEM_POINTS or (stemPoints[1] and stemPoints[1].y > Config.SCREEN_HEIGHT + 50) then
+            table.remove(stemPoints, 1)
         end
     end
 end
 
 function Plant.reset()
-    points = {}
-    leaves = {}
-    leafSide = 1
-    totalTime = 0
-    headX, headY = C.SCREEN_WIDTH / 2, 200
-    smoothHeadX, smoothHeadY = headX, headY
-    dir = -math.pi / 2
+    stemPoints = {}
+    rotatingLeaves = {}
+    spawnSide = 1
+    elapsedTime = 0
+    plantHeadX, plantHeadY = Config.SCREEN_WIDTH / 2, 200
+    smoothedHeadX, smoothedHeadY = plantHeadX, plantHeadY
+    growthDirection = -math.pi / 2
 
-    points[1] = { x = headX, y = C.SCREEN_HEIGHT }
-    points[2] = { x = headX, y = headY }
+    stemPoints[1] = { x = plantHeadX, y = Config.SCREEN_HEIGHT }
+    stemPoints[2] = { x = plantHeadX, y = plantHeadY }
 end
 
-function Plant.update(dt, crankDelta)
-    totalTime = totalTime + dt
-    local prevHeadY = headY
-    local scrollOffset = C.SCROLL_SPEED * dt
+function Plant.update(deltaTime, crankDelta)
+    elapsedTime = elapsedTime + deltaTime
+    local previousHeadY = plantHeadY
+    local scrollOffset = Config.SCROLL_SPEED * deltaTime
 
-    for i = 1, #points do
-        points[i].y = points[i].y + scrollOffset
+    for i = 1, #stemPoints do
+        stemPoints[i].y = stemPoints[i].y + scrollOffset
     end
 
-    -- Scroll des feuilles + nettoyage hors écran
-    for i = #leaves, 1, -1 do
-        leaves[i].y = leaves[i].y + scrollOffset
-        if leaves[i].y > C.SCREEN_HEIGHT + 20 then
-            table.remove(leaves, i)
+    -- Nettoie les feuilles qui ont quitté l'écran.
+    for i = #rotatingLeaves, 1, -1 do
+        rotatingLeaves[i].y = rotatingLeaves[i].y + scrollOffset
+        if rotatingLeaves[i].y > Config.SCREEN_HEIGHT + 20 then
+            table.remove(rotatingLeaves, i)
         end
     end
 
-    headY = headY + scrollOffset
-    smoothHeadY = smoothHeadY + scrollOffset
+    plantHeadY = plantHeadY + scrollOffset
+    smoothedHeadY = smoothedHeadY + scrollOffset
 
-    local targetDir = dir + crankDelta * C.TURN_RATE
-    dir = lerp(dir, targetDir, C.SMOOTH_DIR)
+    local targetDirection = growthDirection + crankDelta * Config.TURN_RATE
+    growthDirection = lerp(growthDirection, targetDirection, Config.SMOOTH_DIR)
 
-    local vx = math.cos(dir) * C.SPEED
-    local vy = math.sin(dir) * C.SPEED
+    local velocityX = math.cos(growthDirection) * Config.SPEED
+    local velocityY = math.sin(growthDirection) * Config.SPEED
 
-    headX = headX + vx * dt
-    headY = headY + vy * dt
+    plantHeadX = plantHeadX + velocityX * deltaTime
+    plantHeadY = plantHeadY + velocityY * deltaTime
 
-    headX = clamp(headX, C.HEAD_CLAMP_X_MARGIN, C.SCREEN_WIDTH - C.HEAD_CLAMP_X_MARGIN)
-    headY = clamp(headY, C.HEAD_CLAMP_TOP, C.SCREEN_HEIGHT + C.HEAD_CLAMP_BOTTOM_PADDING)
+    plantHeadX = clamp(plantHeadX, Config.HEAD_CLAMP_X_MARGIN, Config.SCREEN_WIDTH - Config.HEAD_CLAMP_X_MARGIN)
+    plantHeadY = clamp(plantHeadY, Config.HEAD_CLAMP_TOP, Config.SCREEN_HEIGHT + Config.HEAD_CLAMP_BOTTOM_PADDING)
 
-    local offscreenLoss = headY > C.SCREEN_HEIGHT
+    local offscreenLoss = plantHeadY > Config.SCREEN_HEIGHT
 
-    smoothHeadX = smoothHeadX + (headX - smoothHeadX) * C.PATH_SMOOTH
-    smoothHeadY = smoothHeadY + (headY - smoothHeadY) * C.PATH_SMOOTH
-    smoothHeadX = clamp(smoothHeadX, C.HEAD_CLAMP_X_MARGIN, C.SCREEN_WIDTH - C.HEAD_CLAMP_X_MARGIN)
+    smoothedHeadX = smoothedHeadX + (plantHeadX - smoothedHeadX) * Config.PATH_SMOOTH
+    smoothedHeadY = smoothedHeadY + (plantHeadY - smoothedHeadY) * Config.PATH_SMOOTH
+    smoothedHeadX = clamp(smoothedHeadX, Config.HEAD_CLAMP_X_MARGIN, Config.SCREEN_WIDTH - Config.HEAD_CLAMP_X_MARGIN)
 
-    updateStemPath()
+    appendStemPointIfNeeded()
 
-    local worldDeltaY = (headY - prevHeadY) - scrollOffset
+    local worldDeltaY = (plantHeadY - previousHeadY) - scrollOffset
     local climbDelta = 0
     if worldDeltaY < 0 then
         climbDelta = -worldDeltaY
@@ -157,39 +150,37 @@ function Plant.update(dt, crankDelta)
     return scrollOffset, climbDelta, offscreenLoss
 end
 
-function Plant.drawStem(gfx)
-    for i = 1, #points - 1 do
-        local p1 = points[i]
-        local p2 = points[i + 1]
-        drawStemSegment(gfx, p1.x, p1.y, p2.x, p2.y, C.STEM_RADIUS)
+function Plant.drawStem(graphics)
+    for i = 1, #stemPoints - 1 do
+        local pointA = stemPoints[i]
+        local pointB = stemPoints[i + 1]
+        drawStemSegment(graphics, pointA.x, pointA.y, pointB.x, pointB.y, Config.STEM_RADIUS)
     end
 end
 
-function Plant.drawLeaves(gfx)
-    if not leafImage then return end
+function Plant.drawLeaves(graphics)
+    if not leafSprite then return end
 
-    for _, leaf in ipairs(leaves) do
-        -- Angle oscillant autour de l'angle de base
-        local oscillation = math.sin(totalTime * C.LEAF_OSCILLATION_SPEED + leaf.timeOffset)
-                            * C.LEAF_OSCILLATION_AMOUNT
+    for _, leaf in ipairs(rotatingLeaves) do
+        local oscillation = math.sin(elapsedTime * Config.LEAF_OSCILLATION_SPEED + leaf.timeOffset)
+                            * Config.LEAF_OSCILLATION_AMOUNT
         local angle = leaf.baseAngle + oscillation
 
-        gfx.pushContext()
-            -- Translate au point d'attache, rotate, dessine centré
-            gfx.setDrawOffset(math.floor(leaf.x + 0.5), math.floor(leaf.y + 0.5))
-            leafImage:drawRotated(0, 0, math.deg(angle))
-        gfx.popContext()
+        graphics.pushContext()
+            graphics.setDrawOffset(math.floor(leaf.x + 0.5), math.floor(leaf.y + 0.5))
+            leafSprite:drawRotated(0, 0, math.deg(angle))
+        graphics.popContext()
     end
 end
 
-function Plant.drawHead(gfx, playerImage)
+function Plant.drawHead(graphics, playerImage)
     if playerImage then
-        playerImage:drawCentered(smoothHeadX, smoothHeadY)
+        playerImage:drawCentered(smoothedHeadX, smoothedHeadY)
     else
-        gfx.fillCircleAtPoint(math.floor(smoothHeadX + 0.5), math.floor(smoothHeadY + 0.5), 6)
+        graphics.fillCircleAtPoint(math.floor(smoothedHeadX + 0.5), math.floor(smoothedHeadY + 0.5), 6)
     end
 end
 
 function Plant.getSmoothHeadPosition()
-    return smoothHeadX, smoothHeadY
+    return smoothedHeadX, smoothedHeadY
 end

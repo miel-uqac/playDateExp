@@ -1,10 +1,10 @@
---import "CoreLibs/sound"
+-- Gestion centralisée des musiques et effets sonores.
 import "game_constants"
 
 Audio = {}
 
-local C = GameConstants
-local snd = playdate.sound
+local Config = GameConstants
+local sound <const> = playdate.sound
 
 local musicMenu = nil
 local musicGame = nil
@@ -13,22 +13,23 @@ local currentMusic = nil
 
 
 function Audio.load()
-    musicMenu = snd.fileplayer.new(C.MUSIC_MENU_PATH)
+    musicMenu = sound.fileplayer.new(Config.MUSIC_MENU_PATH)
     if not musicMenu then
-        print("Erreur : impossible de charger " .. C.MUSIC_MENU_PATH)
+        print("Erreur : impossible de charger " .. Config.MUSIC_MENU_PATH)
     end
 
-    musicGame = snd.fileplayer.new(C.MUSIC_GAME_PATH)
+    musicGame = sound.fileplayer.new(Config.MUSIC_GAME_PATH)
     if not musicGame then
-        print("Erreur : impossible de charger " .. C.MUSIC_GAME_PATH)
+        print("Erreur : impossible de charger " .. Config.MUSIC_GAME_PATH)
     end
 
-    soundGameOver = snd.sampleplayer.new(C.SOUND_GAMEOVER_PATH)
+    soundGameOver = sound.sampleplayer.new(Config.SOUND_GAMEOVER_PATH)
     if not soundGameOver then
-        print("Erreur : impossible de charger " .. C.SOUND_GAMEOVER_PATH)
+        print("Erreur : impossible de charger " .. Config.SOUND_GAMEOVER_PATH)
     end
 end
 
+-- Coupe la piste en cours avant d'en lancer une nouvelle.
 local function stopCurrentMusic()
     if currentMusic and currentMusic:isPlaying() then
         currentMusic:stop()
