@@ -53,19 +53,30 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 ## Structure du projet
 
 /source
-├── assets/
-│   ├── audio/          # Musiques et effets sonores
-│   ├── Background/     # Assets du background parallaxe
-│   └── ...             # Autres assets graphiques
-├── main.lua            # Point d'entrée, boucle de jeu principale
-├── plant.lua           # Logique et rendu de la plante
-├── obstacles.lua       # Classes des obstacles (Saw, FallingPot)
-├── bonus.lua           # Système de bonus collectables
-├── audio.lua           # Gestion de l'audio
-├── ui.lua              # HUD et menus
-├── game_constants.lua  # Toutes les constantes du jeu
-└── pdxinfo             # Métadonnées du projet Playdate
 
+├── assets/
+
+│   ├── audio/          # Musiques et effets sonores
+
+│   ├── Background/     # Assets du background parallaxe
+
+│   └── ...             # Autres assets graphiques
+
+├── main.lua            # Point d'entrée, boucle de jeu principale
+
+├── plant.lua           # Logique et rendu de la plante
+
+├── obstacles.lua       # Classes des obstacles (Saw, FallingPot)
+
+├── bonus.lua           # Système de bonus collectables
+
+├── audio.lua           # Gestion de l'audio
+
+├── ui.lua              # HUD et menus
+
+├── game_constants.lua  # Toutes les constantes du jeu
+
+└── pdxinfo             # Métadonnées du projet Playdate
 
 ---
 
