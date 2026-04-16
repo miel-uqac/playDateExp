@@ -92,17 +92,17 @@ Ce projet a été réalisé dans le cadre du cours de projet de l'UQAC.
 - Travailler en équipe sur un projet de A à Z
 - Créer une documentation technique en français sur la création de jeux Playdate
 
-## 👥 Crédits
+## Crédits
 
 | Rôle | Personne |
 |------|----------|
-| Développement, game design et documentation | **Basile MONOD** (étudiant, UQAC) |
-| Développement, game design et documentation | **Edgar MARTIN** (étudiant, UQAC) |
-| Supervision | **Damien BRUN** (Professeur, UQAC) |
+| Développement, game design et documentation | **[Basile MONOD](https://github.com/BASile15)** (étudiant, UQAC) |
+| Développement, game design et documentation | **[Edgar MARTIN](https://github.com/MaiSan18)** (étudiant, UQAC) |
+| Supervision | **[Damien BRUN](https://github.com/makowildcat)** (Professeur, UQAC) |
 
 ---
 
-## 🔗 Liens utiles
+## Liens utiles
 
 - [Wiki du projet](https://github.com/miel-uqac/playDateExp/wiki)
 - [Site officiel Playdate](https://play.date/)
