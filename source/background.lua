@@ -124,9 +124,6 @@ function Background.load()
     end
 
     menuBackgroundImage = graphics.image.new(Config.BG_MENU_PATH)
-    menuTitleImage = graphics.image.new(Config.BG_MENU_TITLE_PATH)
-    menuLeftCloudImage = graphics.image.new(Config.BG_MENU_CLOUD_PATH)
-    menuRightCloudImage = graphics.image.new(Config.BG_MENU_CLOUD_PATH)
 
     foregroundCloudLayer = createParallaxLayer({
         imagePaths = Config.BG_LAYER1_IMAGES,
@@ -145,17 +142,8 @@ function Background.reset()
 end
 
 function Background.drawMenu()
-    if menuBackgroundImage then menuBackgroundImage:draw(0, 0) end
-    if menuLeftCloudImage then
-        menuLeftCloudImage:draw(0, Config.MENU_CLOUD_LEFT_Y)
-    end
-    if menuRightCloudImage then
-        local w = menuRightCloudImage:getSize()
-        menuRightCloudImage:draw(Config.SCREEN_WIDTH - w, Config.MENU_CLOUD_RIGHT_Y)
-    end
-    if menuTitleImage then
-        local w = menuTitleImage:getSize()
-        menuTitleImage:draw(math.floor((Config.SCREEN_WIDTH - w) / 2), 0)
+    if menuBackgroundImage then 
+        menuBackgroundImage:draw(0, 0) 
     end
 end
 

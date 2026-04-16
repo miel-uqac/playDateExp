@@ -30,10 +30,8 @@ GameConstants = {
     OBSTACLE_SAW_SPAWN_CHANCE = 0.7,
 
     -- Fond et menu
-    BG_MENU_PATH = "assets/Background/Montagne",
-    BG_MENU_TITLE_PATH = "assets/Background/Title",
-    BG_MENU_CLOUD_PATH = "assets/Background/MoyenCloud2",
-    BG_MOUNTAINS_PATH = "assets/Background/Montagnes",
+    BG_MENU_PATH = "assets/Background/MontagneMainMenu",
+    BG_MOUNTAINS_PATH = "assets/Background/MontagneInGame",
     BG_MOUNTAINS_SCALE = 1,
     MENU_CLOUD_LEFT_Y = 12,
     MENU_CLOUD_RIGHT_Y = 95,
@@ -41,6 +39,7 @@ GameConstants = {
     BG_LAYER1_IMAGES = {
         "assets/Background/BigCloud2",
         "assets/Background/MoyenCloud2",
+        "assets/Background/LittleCloud",
     },
     BG_LAYER1_SCALE = 1,
     BG_LAYER1_PARALLAX_SPEED = 0.08,
@@ -68,8 +67,11 @@ GameConstants = {
     MAX_STEM_POINTS = 260,
     PATH_SMOOTH = 0.25,
     STEM_RADIUS = 2,
-
-    LEAF_IMAGE_PATH = "assets/Feuille",
+    
+    LEAF_IMAGE_PATHS = {
+        "assets/Feuille",
+        "assets/Feuille2"
+    },
     LEAF_SPAWN_CHANCE = 50,
 
     HEAD_CLAMP_X_MARGIN = 5,

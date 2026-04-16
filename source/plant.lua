@@ -10,9 +10,9 @@ local attachedLeaves = {}
 local plantHeadX, plantHeadY = Config.SCREEN_WIDTH / 2, 200
 local smoothedHeadX, smoothedHeadY = Config.SCREEN_WIDTH / 2, 200
 local growthDirection = -math.pi / 2
-local leafSprite = nil
-local leafSpriteWidth = 0
-local leafSpriteHeight = 0
+
+local leafSprites = {}
+
 local leafSpawnTimer = 0
 local LEAF_SPAWN_INTERVAL = 1.0
 
@@ -88,10 +88,18 @@ local function appendStemPointIfNeeded()
         stemPoints[#stemPoints + 1] = { x = smoothedHeadX, y = smoothedHeadY }
         if leafSpawnTimer >= LEAF_SPAWN_INTERVAL then
             leafSpawnTimer = 0
+            
+            -- On choisit un index aléatoire parmi les feuilles chargées
+            local randomSpriteIndex = 1
+            if #leafSprites > 0 then
+                randomSpriteIndex = math.random(1, #leafSprites)
+            end
+
             attachedLeaves[#attachedLeaves + 1] = {
                 x = smoothedHeadX,
                 y = smoothedHeadY,
                 flip = getLeafFlipForSpawn(smoothedHeadX, smoothedHeadY),
+                spriteIndex = randomSpriteIndex -- On sauvegarde quelle feuille c'est
             }
         end
 
@@ -109,14 +117,14 @@ function Plant.reset()
     smoothedHeadX, smoothedHeadY = plantHeadX, plantHeadY
     growthDirection = -math.pi / 2
 
-    local loadedLeaf = graphics.image.new(Config.LEAF_IMAGE_PATH)
-    leafSprite = loadedLeaf
-    if leafSprite then
-        leafSpriteWidth = select(1, leafSprite:getSize())
-        leafSpriteHeight = select(2, leafSprite:getSize())
-    else
-        leafSpriteWidth = 0
-        leafSpriteHeight = 0
+    leafSprites = {}
+    if Config.LEAF_IMAGE_PATHS then
+        for i, path in ipairs(Config.LEAF_IMAGE_PATHS) do
+            local loadedLeaf = graphics.image.new(path)
+            if loadedLeaf then
+                table.insert(leafSprites, loadedLeaf)
+            end
+        end
     end
 
     stemPoints[1] = { x = plantHeadX, y = Config.SCREEN_HEIGHT }
@@ -135,8 +143,14 @@ function Plant.update(deltaTime, crankDelta)
     for i = #attachedLeaves, 1, -1 do
         local leaf = attachedLeaves[i]
         leaf.y = leaf.y + scrollOffset
+        
+        -- On récupère la hauteur de la feuille spécifique
+        local h = 0
+        if leafSprites[leaf.spriteIndex] then
+            h = select(2, leafSprites[leaf.spriteIndex]:getSize())
+        end
 
-        if leaf.y - leafSpriteHeight > Config.SCREEN_HEIGHT + 20 then
+        if leaf.y - h > Config.SCREEN_HEIGHT + 20 then
             table.remove(attachedLeaves, i)
         end
     end
@@ -182,24 +196,30 @@ function Plant.drawStem(graphics)
 end
 
 function Plant.drawLeaves(graphics)
-    if not leafSprite then
+    if #leafSprites == 0 then
         return
     end
 
     for i = 1, #attachedLeaves do
         local leaf = attachedLeaves[i]
-        local drawX = leaf.x
-        local drawY = leaf.y - leafSpriteHeight
+        local sprite = leafSprites[leaf.spriteIndex]
 
-        -- On ajuste le point d'ancrage pour que la feuille reste collée à la tige.
-        if leaf.flip == graphics.kImageFlippedX or leaf.flip == graphics.kImageFlippedXY then
-            drawX = drawX - leafSpriteWidth + 1
-        end
-        if leaf.flip == graphics.kImageFlippedY or leaf.flip == graphics.kImageFlippedXY then
-            drawY = leaf.y
-        end
+        if sprite then
+            -- On récupère la taille exacte de ce sprite précis
+            local w, h = sprite:getSize()
+            local drawX = leaf.x
+            local drawY = leaf.y - h
 
-        leafSprite:draw(math.floor(drawX + 0.5), math.floor(drawY + 0.5), leaf.flip)
+            -- On ajuste le point d'ancrage pour que la feuille reste collée à la tige.
+            if leaf.flip == graphics.kImageFlippedX or leaf.flip == graphics.kImageFlippedXY then
+                drawX = drawX - w + 1
+            end
+            if leaf.flip == graphics.kImageFlippedY or leaf.flip == graphics.kImageFlippedXY then
+                drawY = leaf.y
+            end
+
+            sprite:draw(math.floor(drawX + 0.5), math.floor(drawY + 0.5), leaf.flip)
+        end
     end
 end
 
