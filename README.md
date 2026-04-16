@@ -52,8 +52,7 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 
 ## Structure du projet
 
-/source
-
+```
 ├── assets/
 
 │   ├── audio/          # Musiques et effets sonores
@@ -77,7 +76,7 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 ├── game_constants.lua  # Toutes les constantes du jeu
 
 └── pdxinfo             # Métadonnées du projet Playdate
-
+```
 ---
 
 ## Documentation
