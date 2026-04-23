@@ -38,7 +38,7 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 ### Étapes pour lancer le projet avec VSCode
 1. Dans un terminal, allez de le dossier voulu via la commande 
 ```bash
-    cd C:/VotreFichier/
+    cd ../VotreDossier/
 ```
 2. Ensuite, cloner le dépôt :
 ```bash
