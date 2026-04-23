@@ -38,8 +38,7 @@ GameConstants = {
 
     BG_LAYER1_IMAGES = {
         "assets/Background/BigCloud2",
-        "assets/Background/MoyenCloud2",
-        "assets/Background/LittleCloud",
+        "assets/Background/MoyenCloud2"
     },
     BG_LAYER1_SCALE = 1,
     BG_LAYER1_PARALLAX_SPEED = 0.08,
