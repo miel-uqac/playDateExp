@@ -35,7 +35,7 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 - Télécharger et installer le [Playdate SDK](https://play.date/dev/)
 - Avoir accès au Playdate Simulator (normalement inclus dans le SDK)
 
-### Étapes
+### Étapes pour lancer le projet avec VSCode
 1. Dans un terminal, allez de le dossier voulu via la commande 
 ```bash
     cd C:/VotreFichier/
@@ -44,9 +44,30 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 ```bash
    git clone https://github.com/miel-uqac/playDateExp.git
 ```
-3. Ouvrir le Playdate Simulator
-4. Dans le Simulator, aller dans **File > Open** et sélectionner le dossier du projet
-5. Pour lancer le jeu, appuyez sur **F5**
+3. Ouvrir le fichier playDateExp via Visual Studio Code
+4. Dans VSCode, installez l'extention `Playdate Debug`
+5. Pour lancer le jeu, appuyez sur **F5** ou sur **Run -> Start Debugging**
+
+
+### Étapes pour lancer le projet sans VSCode
+Si vous ne souhaitez pas utiliser d'IDE, vous pouvez compiler et lancer le jeu manuellement en utilisant les outils fournis directement dans le SDK.
+
+**1. Compiler le projet en .pdx :**
+
+Le simulateur ne lit pas directement les fichiers `.lua` sources. Il a besoin d'un dossier compilé au format `.pdx`. Pour cela, on utilise l'outil pdc (Playdate Compiler) inclus dans le SDK.
+
+- Ouvrez un terminal (CMD ou PowerShell sur Windows).
+- Utilisez la commande suivante :
+```
+    pdc "chemin/vers/votre/source" "nomDuJeu.pdx"
+```
+
+**2. Lancer le Simulateur**
+
+Une fois le dossier .pdx généré, il suffit de l'ouvrir avec le simulateur :
+- Lancez l'application Playdate Simulator.
+- Allez dans le menu File -> Open (ou Ctrl+O).
+- Sélectionnez le dossier `.pdx` que vous venez de créer.
 
 ---
 
@@ -54,27 +75,16 @@ Le développement Playdate permet également l'utilisation du C pour des besoins
 
 ```
 ├── assets/
-
 │   ├── audio/          # Musiques et effets sonores
-
 │   ├── Background/     # Assets du background parallaxe
-
 │   └── ...             # Autres assets graphiques
-
 ├── main.lua            # Point d'entrée, boucle de jeu principale
-
 ├── plant.lua           # Logique et rendu de la plante
-
 ├── obstacles.lua       # Classes des obstacles (Saw, FallingPot)
-
 ├── bonus.lua           # Système de bonus collectables
-
 ├── audio.lua           # Gestion de l'audio
-
 ├── ui.lua              # HUD et menus
-
 ├── game_constants.lua  # Toutes les constantes du jeu
-
 └── pdxinfo             # Métadonnées du projet Playdate
 ```
 ---
